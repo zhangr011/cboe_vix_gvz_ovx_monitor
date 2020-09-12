@@ -2,9 +2,11 @@
 
 import os, datetime, hashlib
 import pandas as pd
+import numpy as np
 import pandas_market_calendars as market_cal
 
 from .logger import logger
+
 
 #Date format: Year-Month-Day
 DATE_FORMAT ='%Y-%m-%d'
@@ -36,10 +38,11 @@ def run_over_time_frame():
     """run over all the delivery dates"""
     logger.info("Calculating contract expiration dates...")
     futures_exp_dates = []
-    # two years later
+    # about 14 months later
     end_time = datetime.datetime.now() + datetime.timedelta(days = 420)
     cur_time = datetime.datetime(2013, 1, 1)
-    schedule_days = cboe_calendar.schedule(cur_time.strftime(DATE_FORMAT), end_time.strftime(DATE_FORMAT))
+    schedule_days = cboe_calendar.schedule(cur_time.strftime(DATE_FORMAT),
+                                           end_time.strftime(DATE_FORMAT))
     while cur_time.weekday() != 4:
         # find the first friday
         cur_time += ONE_DAY
@@ -61,7 +64,7 @@ def run_over_time_frame():
         cur_time = next_time
     futures_exp_dates.pop(0)
     logger.info("Expiration Dates Generated.")
-    return futures_exp_dates
+    return futures_exp_dates, schedule_days
 
 
 #----------------------------------------------------------------------
@@ -124,3 +127,79 @@ def generate_csv_checksums(path: str):
                 if check_data_integrity(filepath, date):
                     checksums.append((fn, hash_file(filepath)))
     return checksums
+
+
+#----------------------------------------------------------------------
+def filter_deliver_date(deliver_date: list, end_date: str, times: int = 12):
+    """filter the last n deliver date, default to one year """
+    dates = []
+    for item in deliver_date:
+        if item < end_date:
+            dates.append(item)
+    # return the last n dates
+    return dates[-times:]
+
+
+#----------------------------------------------------------------------
+def dup_date_schedule(date_schedule: pd.DataFrame, sdate: str, edate: str):
+    """duplicate a date schedule between sdate and edate"""
+    return pd.DataFrame(date_schedule[(date_schedule.index > sdate) &
+                                      (date_schedule.index <= edate)],
+                        columns = [])
+
+
+#----------------------------------------------------------------------
+def mark_by_date(row: pd.Series, sdate: str, edate: str = None):
+    """"""
+    date = datetime.datetime.strftime(row.name, DATE_FORMAT)
+    if date > sdate and (edate is None or date <= edate):
+        return 1
+    else:
+        return 0
+
+
+#----------------------------------------------------------------------
+def generate_term_structure_mask(deliver_date: list,
+                                 date_schedule: pd.DataFrame, tdate: str):
+    """generate tdate's mask of term structure"""
+    # remain last one year's trade date
+    filtered_delivery = filter_deliver_date(deliver_date, tdate)
+    sdate = filtered_delivery[0]
+    # duplicate target DataFrame's index
+    mask = dup_date_schedule(date_schedule, sdate, tdate)
+    mask.insert(loc = 0, column = 0, value = 0)
+    # generate the mask according to tdate
+    reversed_delivery = reversed(filtered_delivery)
+    edate = None
+    for idx, sdate in enumerate(reversed_delivery):
+        def filter_date(row):
+            return mark_by_date(row, sdate, edate)
+        if 0 == idx:
+            mask[0] = mask.apply(filter_date, axis = 1)
+        else:
+            mask.insert(loc = idx, column = idx,
+                        value = mask.apply(filter_date, axis = 1))
+            # mark the end date for the next item check
+        edate = sdate
+    return mask
+
+
+#----------------------------------------------------------------------
+def shift_term_structure_mask(deliver_date: list,
+                              date_schedule: pd.DataFrame, mask: pd.DataFrame):
+    """shift back a trade month of term structure mask"""
+    start_date = mask.index[0]
+    start_date_str = datetime.datetime.strftime(start_date, DATE_FORMAT)
+    filtered_delivery = filter_deliver_date(deliver_date, start_date_str)
+    sdate = filtered_delivery[-2]
+    edate = filtered_delivery[-1]
+    mask2 = dup_date_schedule(date_schedule, sdate, edate)
+    column_name = mask.columns[0]
+    # drop the first column
+    mask.drop(column_name, axis = 1, inplace = True)
+    # drop the rows of all zeros
+    mask.drop(mask.loc[mask.sum(axis = 1) == 0].index, inplace = True)
+    mask = pd.concat([mask2, mask])
+    mask.insert(loc = mask.shape[1], column = column_name,
+                value = mask.apply(lambda x: mark_by_date(x, sdate, edate), axis = 1))
+    return mask.fillna(0)

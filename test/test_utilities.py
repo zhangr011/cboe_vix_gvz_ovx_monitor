@@ -31,7 +31,7 @@ class TestUnititiesCase(ut.TestCase):
     #----------------------------------------------------------------------
     def testRunOverTimeFrame(self):
         """test for generating the delivery date"""
-        seq = run_over_time_frame()
+        seq, days = run_over_time_frame()
         self.assertEqual('2013-01-16', seq[0])
         self.assertEqual('2013-02-13', seq[1])
         self.assertEqual('2013-03-20', seq[2])
@@ -44,6 +44,9 @@ class TestUnititiesCase(ut.TestCase):
         self.assertEqual('2013-10-16', seq[9])
         self.assertEqual('2013-11-20', seq[10])
         self.assertEqual('2013-12-18', seq[11])
+        self.assertEqual('2019-09-18', seq[80])
+        self.assertEqual('2019-10-16', seq[81])
+        self.assertEqual('2019-11-20', seq[82])
         self.assertEqual('2019-12-18', seq[83])
         self.assertEqual('2020-01-22', seq[84])
         self.assertEqual('2020-02-19', seq[85])
