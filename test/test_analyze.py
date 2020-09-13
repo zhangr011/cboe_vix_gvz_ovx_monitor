@@ -8,7 +8,7 @@ import os
 from cboe_monitor.utilities import \
     TEST_DATA_ROOT, \
     run_over_time_frame, filter_delivery_dates, shift_delivery_dates, \
-    generate_term_structure, load_futures_by_csv
+    generate_term_structure, load_futures_by_csv, combine_data
 
 
 
@@ -57,26 +57,35 @@ class TestAnalyze(ut.TestCase):
         futures_0916 = load_futures_by_csv(os.path.join(TEST_DATA_ROOT, '2020-09-16.csv'))
         term1 = generate_term_structure(
             delivery_dates, futures_0916, '2020-09-10')
-        self.assertEqual((191, 12), term.shape)
-        np.testing.assert_array_equal([28.775, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], term.loc['2020-09-10'])
-        np.testing.assert_array_equal([0, 26.225, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], term.loc['2020-08-19'])
-        np.testing.assert_array_equal([0, 30.275, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], term.loc['2020-07-23'])
-        np.testing.assert_array_equal([0, 0, 29.125, 0, 0, 0, 0, 0, 0, 0, 0, 0], term.loc['2020-07-22'])
-        np.testing.assert_array_equal([0, 0, 0, 0, 0, 0, 0, 0, 17.475, 0, 0, 0], term.loc['2020-01-17'])
-        np.testing.assert_array_equal([0, 0, 0, 0, 0, 0, 0, 0, 0, 19.1, 0, 0], term.loc['2019-12-12'])
-        np.testing.assert_array_equal([0, 0, 0, 0, 0, 0, 0, 0, 0, 19.2, 0, 0], term.loc['2019-12-09'])
+        self.assertEqual((191, 12), term1.shape)
+        np.testing.assert_array_equal([28.775, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], term1.loc['2020-09-10'])
+        np.testing.assert_array_equal([0, 26.225, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], term1.loc['2020-08-19'])
+        np.testing.assert_array_equal([0, 30.275, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], term1.loc['2020-07-23'])
+        np.testing.assert_array_equal([0, 0, 29.125, 0, 0, 0, 0, 0, 0, 0, 0, 0], term1.loc['2020-07-22'])
+        np.testing.assert_array_equal([0, 0, 0, 0, 0, 0, 0, 0, 17.475, 0, 0, 0], term1.loc['2020-01-17'])
+        np.testing.assert_array_equal([0, 0, 0, 0, 0, 0, 0, 0, 0, 19.1, 0, 0], term1.loc['2019-12-12'])
+        np.testing.assert_array_equal([0, 0, 0, 0, 0, 0, 0, 0, 0, 19.2, 0, 0], term1.loc['2019-12-09'])
         # boundary test for deliver date
         futures_0819 = load_futures_by_csv(os.path.join(TEST_DATA_ROOT, '2020-08-19.csv'))
         term2 = generate_term_structure(
             delivery_dates, futures_0819, '2020-08-19')
-        np.testing.assert_array_equal([21.71, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], term.loc['2020-08-19'])
-        np.testing.assert_array_equal([28.775, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], term.loc['2020-07-23'])
-        np.testing.assert_array_equal([0, 27.25, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], term.loc['2020-07-22'])
-        np.testing.assert_array_equal([0, 0, 0, 0, 0, 0, 0, 17.175, 0, 0, 0, 0], term.loc['2020-01-17'])
-        np.testing.assert_array_equal([0, 0, 0, 0, 0, 0, 0, 0, 18.6, 0, 0, 0], term.loc['2019-12-12'])
-        np.testing.assert_array_equal([0, 0, 0, 0, 0, 0, 0, 0, 19.075, 0, 0, 0], term.loc['2019-12-09'])
-        np.testing.assert_array_equal([0, 0, 0, 0, 0, 0, 0, 0, 18.75, 0, 0, 0], term.loc['2019-11-25'])
+        np.testing.assert_array_equal([21.71, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], term2.loc['2020-08-19'])
+        np.testing.assert_array_equal([28.775, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], term2.loc['2020-07-23'])
+        np.testing.assert_array_equal([0, 27.25, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], term2.loc['2020-07-22'])
+        np.testing.assert_array_equal([0, 0, 0, 0, 0, 0, 0, 17.175, 0, 0, 0, 0], term2.loc['2020-01-17'])
+        np.testing.assert_array_equal([0, 0, 0, 0, 0, 0, 0, 0, 18.6, 0, 0, 0], term2.loc['2019-12-12'])
+        np.testing.assert_array_equal([0, 0, 0, 0, 0, 0, 0, 0, 19.075, 0, 0, 0], term2.loc['2019-12-09'])
+        np.testing.assert_array_equal([0, 0, 0, 0, 0, 0, 0, 0, 18.75, 0, 0, 0], term2.loc['2019-11-25'])
         # test for combine
+        term3 = combine_data(term1, term2)
+        np.testing.assert_array_equal([28.775, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], term3.loc['2020-09-10'])
+        np.testing.assert_array_equal([21.71, 26.225, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], term3.loc['2020-08-19'])
+        np.testing.assert_array_equal([28.775, 30.275, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], term3.loc['2020-07-23'])
+        np.testing.assert_array_equal([0, 27.25, 29.125, 0, 0, 0, 0, 0, 0, 0, 0, 0], term3.loc['2020-07-22'])
+        np.testing.assert_array_equal([0, 0, 0, 0, 0, 0, 0, 17.175, 17.475, 0, 0, 0], term3.loc['2020-01-17'])
+        np.testing.assert_array_equal([0, 0, 0, 0, 0, 0, 0, 0, 18.6, 19.1, 0, 0], term3.loc['2019-12-12'])
+        np.testing.assert_array_equal([0, 0, 0, 0, 0, 0, 0, 0, 19.075, 19.2, 0, 0], term3.loc['2019-12-09'])
+        np.testing.assert_array_equal([0, 0, 0, 0, 0, 0, 0, 0, 18.75, 0, 0, 0], term3.loc['2019-11-25'])
 
 
 if __name__ == '__main__':

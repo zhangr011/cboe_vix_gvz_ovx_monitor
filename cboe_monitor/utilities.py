@@ -209,7 +209,7 @@ def generate_term_structure(delivery_dates: list,
 #----------------------------------------------------------------------
 def combine_data(futures_info_a: pd.DataFrame, futures_info_b: pd.DataFrame):
     """combine futures close price according to the front to later"""
-    pd.concat([futures_info_a, futures_info_b])
+    return futures_info_a.add(futures_info_b, fill_value = 0)
 
 
 #----------------------------------------------------------------------
