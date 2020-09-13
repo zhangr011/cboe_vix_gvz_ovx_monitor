@@ -4,10 +4,10 @@ import unittest as ut
 import os
 
 from cboe_monitor.utilities import \
+    TEST_DATA_ROOT, \
     run_over_time_frame, get_file_path, \
     check_data_integrity, generate_csv_checksums
 
-TEST_DATA_ROOT = './test/data'
 
 #----------------------------------------------------------------------
 class TestUnititiesCase(ut.TestCase):
@@ -26,7 +26,8 @@ class TestUnititiesCase(ut.TestCase):
     def testGenerateChecksums(self):
         """"""
         ret = generate_csv_checksums(TEST_DATA_ROOT)
-        self.assertEqual([('2013-01-16.csv', '5177dab14a912f774a8478bfbefb9e4100023c45')], ret)
+        self.assertEqual([('2013-01-16.csv', '5177dab14a912f774a8478bfbefb9e4100023c45'),
+                          ('2020-08-19.csv', '8b5b795edfea70bba2c183e6b198c769ea4dd8cb')], ret)
 
     #----------------------------------------------------------------------
     def testRunOverTimeFrame(self):
@@ -44,6 +45,7 @@ class TestUnititiesCase(ut.TestCase):
         self.assertEqual('2013-10-16', seq[9])
         self.assertEqual('2013-11-20', seq[10])
         self.assertEqual('2013-12-18', seq[11])
+        self.assertEqual('2019-08-21', seq[79])
         self.assertEqual('2019-09-18', seq[80])
         self.assertEqual('2019-10-16', seq[81])
         self.assertEqual('2019-11-20', seq[82])

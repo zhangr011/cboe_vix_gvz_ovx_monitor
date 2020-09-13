@@ -19,11 +19,13 @@ TZ_INFO = 'America/Chicago'
 
 # data root
 DATA_ROOT = './data'
+TEST_DATA_ROOT = './test/data'
 
 # section name for ini parser
 CHECK_SECTION = 'checksum'
 # index key for file check
 INDEX_KEY = 'Trade Date'
+SETTLE_PRICE_NAME = 'Settle'
 
 
 #----------------------------------------------------------------------
@@ -141,65 +143,78 @@ def filter_deliver_date(deliver_date: list, end_date: str, times: int = 12):
 
 
 #----------------------------------------------------------------------
-def dup_date_schedule(date_schedule: pd.DataFrame, sdate: str, edate: str):
+def filter_delivery_dates(delivery_dates: list, end_date: str, times: int = 12):
+    """fitler the last n delivery dates, default to one year"""
+    dates = []
+    for item in delivery_dates:
+        if item < end_date:
+            dates.append(item)
+    # return the last n dates
+    return dates[-times:]
+
+
+#----------------------------------------------------------------------
+def shift_delivery_dates(full_delivery_dates, delivery_dates,
+                         times: int = 1, size: int = 12):
+    """shift the delivery dates back, default back one month"""
+    sdate = delivery_dates[0]
+    idx = full_delivery_dates.index(sdate) + times
+    return full_delivery_dates[idx:idx + size]
+
+
+#----------------------------------------------------------------------
+def dup_futures_info(futures_info: pd.DataFrame, sdate: str, edate: str):
     """duplicate a date schedule between sdate and edate"""
-    return pd.DataFrame(date_schedule[(date_schedule.index > sdate) &
-                                      (date_schedule.index <= edate)],
-                        columns = [])
+    return pd.DataFrame(futures_info[(futures_info.index > sdate) &
+                                     (futures_info.index <= edate)],
+                        columns = [SETTLE_PRICE_NAME])
 
 
 #----------------------------------------------------------------------
 def mark_by_date(row: pd.Series, sdate: str, edate: str = None):
     """"""
-    date = datetime.datetime.strftime(row.name, DATE_FORMAT)
+    date = row.name
+    if isinstance(date, datetime.datetime):
+        date = datetime.datetime.strftime(row.name, DATE_FORMAT)
     if date > sdate and (edate is None or date <= edate):
-        return 1
+        # use the settle price
+        return row[SETTLE_PRICE_NAME]
     else:
         return 0
 
 
 #----------------------------------------------------------------------
-def generate_term_structure_mask(deliver_date: list,
-                                 date_schedule: pd.DataFrame, tdate: str):
+def generate_term_structure(delivery_dates: list,
+                            futures_info: pd.DataFrame, tdate: str):
     """generate tdate's mask of term structure"""
     # remain last one year's trade date
-    filtered_delivery = filter_deliver_date(deliver_date, tdate)
+    filtered_delivery = filter_delivery_dates(delivery_dates, tdate)
     sdate = filtered_delivery[0]
-    # duplicate target DataFrame's index
-    mask = dup_date_schedule(date_schedule, sdate, tdate)
-    mask.insert(loc = 0, column = 0, value = 0)
-    # generate the mask according to tdate
+    # duplicate the target frame
+    term = dup_futures_info(futures_info, sdate, tdate)
+    # generate the term structure according to tdate
     reversed_delivery = reversed(filtered_delivery)
     edate = None
     for idx, sdate in enumerate(reversed_delivery):
-        def filter_date(row):
-            return mark_by_date(row, sdate, edate)
-        if 0 == idx:
-            mask[0] = mask.apply(filter_date, axis = 1)
-        else:
-            mask.insert(loc = idx, column = idx,
-                        value = mask.apply(filter_date, axis = 1))
-            # mark the end date for the next item check
+        term.insert(loc = idx, column = idx,
+                    value = term.apply(
+                        lambda x: mark_by_date(x, sdate, edate), axis = 1))
+        # mark the end date for the next item check
         edate = sdate
-    return mask
+    # drop the settle price column
+    term.drop(columns = ['Settle'], inplace = True)
+    return term
 
 
 #----------------------------------------------------------------------
-def shift_term_structure_mask(deliver_date: list,
-                              date_schedule: pd.DataFrame, mask: pd.DataFrame):
-    """shift back a trade month of term structure mask"""
-    start_date = mask.index[0]
-    start_date_str = datetime.datetime.strftime(start_date, DATE_FORMAT)
-    filtered_delivery = filter_deliver_date(deliver_date, start_date_str)
-    sdate = filtered_delivery[-2]
-    edate = filtered_delivery[-1]
-    mask2 = dup_date_schedule(date_schedule, sdate, edate)
-    column_name = mask.columns[0]
-    # drop the first column
-    mask.drop(column_name, axis = 1, inplace = True)
-    # drop the rows of all zeros
-    mask.drop(mask.loc[mask.sum(axis = 1) == 0].index, inplace = True)
-    mask = pd.concat([mask2, mask])
-    mask.insert(loc = mask.shape[1], column = column_name,
-                value = mask.apply(lambda x: mark_by_date(x, sdate, edate), axis = 1))
-    return mask.fillna(0)
+def combine_data(futures_info_a: pd.DataFrame, futures_info_b: pd.DataFrame):
+    """combine futures close price according to the front to later"""
+    pd.concat([futures_info_a, futures_info_b])
+
+
+#----------------------------------------------------------------------
+def load_futures_by_csv(path: str):
+    """load futures info by csv"""
+    df = pd.read_csv(path, index_col = False)
+    df.set_index(INDEX_KEY, inplace = True)
+    return df
