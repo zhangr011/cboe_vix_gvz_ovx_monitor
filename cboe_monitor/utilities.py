@@ -257,6 +257,18 @@ def analyze_diff_percent(info: pd.DataFrame):
 
 
 #----------------------------------------------------------------------
+def close_ma5_ma10_ma20(df: pd.DataFrame):
+    """calculate the ma5 ma10 and ma20 of the close price"""
+    close_seq = df[CLOSE_PRICE_NAME]
+    ma5 = close_seq.rolling(5).mean()
+    ma10 = close_seq.rolling(10).mean()
+    ma20 = close_seq.rolling(20).mean()
+    df['ma5'] = ma5
+    df['ma10'] = ma10
+    df['ma20'] = ma20
+    return df
+
+#----------------------------------------------------------------------
 def load_futures_by_csv(path: str):
     """load futures info by csv"""
     df = pd.read_csv(path, index_col = False)
