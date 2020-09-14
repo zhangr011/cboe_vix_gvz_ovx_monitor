@@ -265,6 +265,14 @@ def load_futures_by_csv(path: str):
 
 
 #----------------------------------------------------------------------
+def load_vix_by_csv(path: str):
+    """load vix info by csv"""
+    df = pd.read_csv(path)
+    df.set_index(INDEX_KEY, inplace = True)
+    return df
+
+
+#----------------------------------------------------------------------
 def is_futures_file(path: str):
     """check the file then return the delivery date"""
     res = DATE_FORMAT_PATTERN.search(path)

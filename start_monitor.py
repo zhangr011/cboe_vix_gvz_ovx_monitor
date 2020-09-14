@@ -9,7 +9,7 @@ def main():
     vdm = VIXDataManager(delivery_dates)
     vdm.download_raw_data()
     df = vdm.combine_all()
-    percent = vdm.analyze()
+    percent, vix, gvz, ovx = vdm.analyze()
 
 
 if __name__ == '__main__':

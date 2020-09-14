@@ -3,7 +3,7 @@
 from .utilities import \
     CHECK_SECTION, make_sure_dirs_exist, \
     get_file_path, generate_csv_checksums, combine_all, \
-    analyze_diff_percent
+    analyze_diff_percent, load_futures_by_csv, load_vix_by_csv
 from .remote_data import RemoteDataFactory, SYNC_DATA_MODE
 from .logger import logger
 
@@ -69,7 +69,13 @@ class DataManager():
         delta_p = analyze_diff_percent(self._term)
         # drop the first column, it's useless
         delta_p.drop(0, axis = 1, inplace = True)
-        return delta_p
+        vix = load_vix_by_csv(os.path.join(self.data_path, 'VIX.csv'))
+        vix.drop(columns = ['Volume', 'Adj Close'], inplace = True)
+        gvz = load_vix_by_csv(os.path.join(self.data_path, 'GVZ.csv'))
+        gvz.drop(columns = ['Volume', 'Adj Close'], inplace = True)
+        ovx = load_vix_by_csv(os.path.join(self.data_path, 'OVX.csv'))
+        ovx.drop(columns = ['Volume', 'Adj Close'], inplace = True)
+        return delta_p, vix, gvz, ovx
 
     #----------------------------------------------------------------------
     def check_ini(self):
