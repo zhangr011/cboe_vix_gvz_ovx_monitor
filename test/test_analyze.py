@@ -9,7 +9,8 @@ from cboe_monitor.utilities import \
     TEST_DATA_ROOT, \
     run_over_time_frame, filter_delivery_dates, shift_delivery_dates, \
     generate_term_structure, load_futures_by_csv, combine_data, \
-    combine_all, is_futures_file
+    combine_all, is_futures_file, \
+    analyze_diff_percent
 
 
 
@@ -117,6 +118,19 @@ class TestAnalyze(ut.TestCase):
         np.testing.assert_array_equal([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], info.loc['2013-01-16'])
         np.testing.assert_array_equal([14.2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], info.loc['2013-01-15'])
         np.testing.assert_array_equal([15.6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], info.loc['2013-01-02'])
+        delta_p = analyze_diff_percent(info)
+        np.testing.assert_array_equal(
+            [np.nan, -1, np.nan, np.nan, np.nan, np.nan,
+             np.nan, np.nan, np.nan, np.nan, np.nan, np.nan], delta_p.loc['2020-09-10'])
+        np.testing.assert_array_almost_equal(
+            [np.nan, (26.225 - 21.71) / 21.71, -1, np.nan, np.nan, np.nan,
+             np.nan, np.nan, np.nan, np.nan, np.nan, np.nan], delta_p.loc['2020-08-19'])
+        np.testing.assert_array_almost_equal(
+            [np.nan, (30.275 - 28.775) / 28.775, -1, np.nan, np.nan, np.nan,
+             np.nan, np.nan, np.nan, np.nan, np.nan, np.nan], delta_p.loc['2020-07-23'])
+        np.testing.assert_array_almost_equal(
+            [np.nan, np.inf, (29.125 - 27.25) / 27.25, -1, np.nan, np.nan,
+             np.nan, np.nan, np.nan, np.nan, np.nan, np.nan], delta_p.loc['2020-07-22'])
 
 
 if __name__ == '__main__':

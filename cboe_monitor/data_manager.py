@@ -2,7 +2,8 @@
 
 from .utilities import \
     CHECK_SECTION, make_sure_dirs_exist, \
-    get_file_path, generate_csv_checksums, combine_all
+    get_file_path, generate_csv_checksums, combine_all, \
+    analyze_diff_percent
 from .remote_data import RemoteDataFactory, SYNC_DATA_MODE
 from .logger import logger
 
@@ -57,8 +58,18 @@ class DataManager():
     #----------------------------------------------------------------------
     def combine_all(self, max_times: int = 12):
         """combine all futures' term structure"""
-        df = combine_all(self._delivery_dates, self.data_path, max_times)
-        return df
+        self._term = combine_all(self._delivery_dates, self.data_path, max_times)
+        # drop the first columns of 0, it's useless however
+        self._term = self._term[self._term.iloc[:][0] > 0]
+        return self._term
+
+    #----------------------------------------------------------------------
+    def analyze(self):
+        """analyze the data"""
+        delta_p = analyze_diff_percent(self._term)
+        # drop the first column, it's useless
+        delta_p.drop(0, axis = 1, inplace = True)
+        return delta_p
 
     #----------------------------------------------------------------------
     def check_ini(self):

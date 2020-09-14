@@ -243,8 +243,17 @@ def combine_all(delivery_dates: list, path: str, max_times: int = 12):
             times += 1
             if times >= max_times:
                 break
+    # combine the all infos
     final = reduce(combine_data, filtered_infos)
     return final.fillna(0)
+
+
+#----------------------------------------------------------------------
+def analyze_diff_percent(info: pd.DataFrame):
+    """calculate the diff percent"""
+    delta = info.diff(periods = 1, axis = 1)
+    delta_p = delta.div(info.shift(periods = 1, axis = 1))
+    return delta_p
 
 
 #----------------------------------------------------------------------
