@@ -268,6 +268,17 @@ def close_ma5_ma10_ma20(df: pd.DataFrame):
     df['ma20'] = ma20
     return df
 
+
+#----------------------------------------------------------------------
+def mk_notification(futures: pd.DataFrame, percent: pd.DataFrame,
+                    vix: pd.DataFrame, gvz: pd.DataFrame, ovx: pd.DataFrame):
+    if np.any(percent.iloc[-5:][1] < -0.02):
+        per_msg = f'vix 2/1 warning: \n{futures.ix[-5:, [0, 1]]}\n{percent.ix[-5:, [1]]}'
+    else:
+        per_msg = f'vix ok: \n{futures.ix[-5:, [0, 1]]}\n{percent.ix[-5:, [1]]}'
+    return f'{per_msg}'
+
+
 #----------------------------------------------------------------------
 def load_futures_by_csv(path: str):
     """load futures info by csv"""

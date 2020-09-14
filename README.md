@@ -15,5 +15,6 @@ A monitor for the cboe futures of vix, gvz and ovx, which are the most important
 ### 0.2.0 - 数据下载（data download）
 ### 0.3.0 - vix 期货升贴水结构识别（contango or backwardation of vix futures）
 ### 0.4.0 - 通知（notification with wxpush）
-## update schedule:
 ### 0.5.0 - 任务调度（task schedule）
+## update schedule:
+### 0.6.0 - bug fixed
