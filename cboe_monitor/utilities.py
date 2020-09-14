@@ -227,8 +227,7 @@ def combine_data(futures_info_a: pd.DataFrame, futures_info_b: pd.DataFrame):
 
 
 #----------------------------------------------------------------------
-def combine_all(delivery_dates: list,
-                path: str = DATA_ROOT, max_times: int = 12):
+def combine_all(delivery_dates: list, path: str, max_times: int = 12):
     """combine the last n futures info, default to the last 12 futures"""
     paths = sorted(glob.glob(os.path.join(path, '*.csv')), reverse = True)
     filtered_infos = []
@@ -238,6 +237,8 @@ def combine_all(delivery_dates: list,
         if res:
             info = load_futures_by_csv(path)
             term = generate_term_structure(delivery_dates, info, date)
+            if term is None:
+                continue
             filtered_infos.append(term)
             times += 1
             if times >= max_times:

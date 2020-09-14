@@ -2,7 +2,7 @@
 
 from .utilities import \
     CHECK_SECTION, make_sure_dirs_exist, \
-    get_file_path, generate_csv_checksums
+    get_file_path, generate_csv_checksums, combine_all
 from .remote_data import RemoteDataFactory, SYNC_DATA_MODE
 from .logger import logger
 
@@ -20,14 +20,15 @@ class DataManager():
 
     pool_size = 10
 
-    def __init__(self):
+    def __init__(self, delivery_dates: list):
         """Constructor"""
+        self._delivery_dates = delivery_dates
         self.ini_parser = configparser.ConfigParser()
         self.ini_parser.read(self.ini_path)
         self.check_ini()
 
     #----------------------------------------------------------------------
-    def download_raw_data(self, futures_exp_dates: list):
+    def download_raw_data(self):
         """download the data"""
         make_sure_dirs_exist(self.data_path)
         logger.info(f'start downloading data from {self.futures_link}')
@@ -37,7 +38,7 @@ class DataManager():
             rdata = data_fac.create(
                 sym, sym, SYNC_DATA_MODE.PANDAS_DATAREADER)
             to_update.append(rdata)
-        for expiration_date in futures_exp_dates:
+        for expiration_date in self._delivery_dates:
             remote_path = os.path.join(self.futures_link, expiration_date)
             rdata = data_fac.create(
                 expiration_date, remote_path, SYNC_DATA_MODE.HTTP_DOWNLOAD)
@@ -52,6 +53,12 @@ class DataManager():
         checksums = generate_csv_checksums(self.data_path)
         # save the local file's checksum
         self.save_checksums(checksums)
+
+    #----------------------------------------------------------------------
+    def combine_all(self, max_times: int = 12):
+        """combine all futures' term structure"""
+        df = combine_all(self._delivery_dates, self.data_path, max_times)
+        return df
 
     #----------------------------------------------------------------------
     def check_ini(self):
