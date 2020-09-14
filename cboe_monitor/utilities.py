@@ -1,15 +1,19 @@
 # encoding: UTF-8
 
-import os, datetime, hashlib
+import os, datetime, hashlib, glob, re
 import pandas as pd
 import numpy as np
 import pandas_market_calendars as market_cal
+from functools import reduce
 
 from .logger import logger
 
 
-#Date format: Year-Month-Day
+# Date format: Year-Month-Day
 DATE_FORMAT ='%Y-%m-%d'
+DATE_FORMAT_PATTERN = re.compile(r'(\d{4}-\d{2}-\d{2})')
+# INIT_DATE for fix empty delivery dates
+INIT_DATE = '1900-01-01'
 
 cboe_calendar = market_cal.get_calendar('CME')
 
@@ -26,6 +30,7 @@ CHECK_SECTION = 'checksum'
 # index key for file check
 INDEX_KEY = 'Trade Date'
 SETTLE_PRICE_NAME = 'Settle'
+CLOSE_PRICE_NAME = 'Close'
 
 
 #----------------------------------------------------------------------
@@ -167,7 +172,7 @@ def dup_futures_info(futures_info: pd.DataFrame, sdate: str, edate: str):
     """duplicate a date schedule between sdate and edate"""
     return pd.DataFrame(futures_info[(futures_info.index > sdate) &
                                      (futures_info.index <= edate)],
-                        columns = [SETTLE_PRICE_NAME])
+                        columns = [CLOSE_PRICE_NAME, SETTLE_PRICE_NAME])
 
 
 #----------------------------------------------------------------------
@@ -178,7 +183,10 @@ def mark_by_date(row: pd.Series, sdate: str, edate: str = None):
         date = datetime.datetime.strftime(row.name, DATE_FORMAT)
     if date > sdate and (edate is None or date <= edate):
         # use the settle price
-        return row[SETTLE_PRICE_NAME]
+        if row[SETTLE_PRICE_NAME]:
+            return row[SETTLE_PRICE_NAME]
+        else:
+            return row[CLOSE_PRICE_NAME]
     else:
         return 0
 
@@ -187,8 +195,12 @@ def mark_by_date(row: pd.Series, sdate: str, edate: str = None):
 def generate_term_structure(delivery_dates: list,
                             futures_info: pd.DataFrame, tdate: str):
     """generate tdate's mask of term structure"""
+    if futures_info.empty:
+        return None
     # remain last one year's trade date
     filtered_delivery = filter_delivery_dates(delivery_dates, tdate)
+    if [] == filtered_delivery:
+        filtered_delivery = [INIT_DATE]
     sdate = filtered_delivery[0]
     # duplicate the target frame
     term = dup_futures_info(futures_info, sdate, tdate)
@@ -202,14 +214,36 @@ def generate_term_structure(delivery_dates: list,
         # mark the end date for the next item check
         edate = sdate
     # drop the settle price column
-    term.drop(columns = ['Settle'], inplace = True)
+    term.drop(columns = [CLOSE_PRICE_NAME, SETTLE_PRICE_NAME], inplace = True)
     return term
 
 
 #----------------------------------------------------------------------
 def combine_data(futures_info_a: pd.DataFrame, futures_info_b: pd.DataFrame):
     """combine futures close price according to the front to later"""
+    if futures_info_b is None or futures_info_b.empty:
+        return futures_info_a
     return futures_info_a.add(futures_info_b, fill_value = 0)
+
+
+#----------------------------------------------------------------------
+def combine_all(delivery_dates: list,
+                path: str = DATA_ROOT, max_times: int = 12):
+    """combine the last n futures info, default to the last 12 futures"""
+    paths = sorted(glob.glob(os.path.join(path, '*.csv')), reverse = True)
+    filtered_infos = []
+    times = 0
+    for path in paths:
+        res, date = is_futures_file(path)
+        if res:
+            info = load_futures_by_csv(path)
+            term = generate_term_structure(delivery_dates, info, date)
+            filtered_infos.append(term)
+            times += 1
+            if times >= max_times:
+                break
+    final = reduce(combine_data, filtered_infos)
+    return final.fillna(0)
 
 
 #----------------------------------------------------------------------
@@ -218,3 +252,12 @@ def load_futures_by_csv(path: str):
     df = pd.read_csv(path, index_col = False)
     df.set_index(INDEX_KEY, inplace = True)
     return df
+
+
+#----------------------------------------------------------------------
+def is_futures_file(path: str):
+    """check the file then return the delivery date"""
+    res = DATE_FORMAT_PATTERN.search(path)
+    if res:
+        return True, res.group(1)
+    return False, None
