@@ -10,7 +10,8 @@ from cboe_monitor.utilities import \
     run_over_time_frame, filter_delivery_dates, shift_delivery_dates, \
     generate_term_structure, load_futures_by_csv, combine_data, \
     combine_all, is_futures_file, \
-    analyze_diff_percent
+    analyze_diff_percent, mk_notification
+from cboe_monitor.data_manager import VIXDataManager
 
 
 
@@ -131,6 +132,15 @@ class TestAnalyze(ut.TestCase):
         np.testing.assert_array_almost_equal(
             [np.nan, np.inf, (29.125 - 27.25) / 27.25, -1, np.nan, np.nan,
              np.nan, np.nan, np.nan, np.nan, np.nan, np.nan], delta_p.loc['2020-07-22'])
+
+    def testNotificationMsg(self):
+        """"""
+        delivery_dates, schedule_days = run_over_time_frame()
+        mgr = VIXDataManager(delivery_dates)
+        df = mgr.combine_all()
+        per, vix, gvz, ovx = mgr.analyze()
+        msg = mk_notification(df, per, vix, gvz, ovx)
+        self.assertEqual('', msg)
 
 
 if __name__ == '__main__':

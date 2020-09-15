@@ -272,11 +272,19 @@ def close_ma5_ma10_ma20(df: pd.DataFrame):
 #----------------------------------------------------------------------
 def mk_notification(futures: pd.DataFrame, percent: pd.DataFrame,
                     vix: pd.DataFrame, gvz: pd.DataFrame, ovx: pd.DataFrame):
-    if np.any(percent.iloc[-5:][1] < -0.02):
-        per_msg = f'vix 2/1 warning: \n{futures.ix[-5:, [0, 1]]}\n{percent.ix[-5:, [1]]}'
+    if np.alltrue(percent.iloc[-5:][1] > 0.02):
+        per_msg = 'vix 2/1 is safe now. '
+    elif np.any(percent.iloc[-5:][1] < -0.02):
+        per_msg = 'vix 2/1 warning!!!! '
     else:
-        per_msg = f'vix ok: \n{futures.ix[-5:, [0, 1]]}\n{percent.ix[-5:, [1]]}'
-    return f'{per_msg}'
+        per_msg = 'vix is ok. '
+    # combine the result
+    futures_521 = futures.iloc[-5:, [0, 1]]
+    percent_51 = percent.iloc[-5:, [0]]
+    futures_521['f2/1'] = percent_51[1]
+    # clear the year info of Trade Date
+    futures_521.index = futures_521.index.str.replace(r'\d{4}-', '')
+    return f'{per_msg}\n{futures_521.to_markdown()}'
 
 
 #----------------------------------------------------------------------
