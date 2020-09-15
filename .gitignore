@@ -4,4 +4,4 @@
 nohup.out
 
 __pycache__
-.pyc
+*.pyc

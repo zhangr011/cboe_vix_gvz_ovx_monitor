@@ -48,6 +48,7 @@ class ScheduleManager(metaclass = Singleton):
     def cancel_timer(self):
         if self._thread:
             self._thread.cancel()
+            self._thread = None
 
     def do_timeout(self):
         """we do sth in this function"""
