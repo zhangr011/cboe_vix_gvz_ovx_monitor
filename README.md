@@ -7,7 +7,8 @@ A monitor for the cboe futures of vix, gvz and ovx, which are the most important
 
 # how to use
 ```bash
-pip install
+pip3 install -r ./requirements.txt
+pip3 install .
 # copy and edit your push.ini if needed.
 cp ./data/push.back.ini ./data/push.ini
 # start the monitor at back
