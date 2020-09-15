@@ -5,6 +5,17 @@ CBOE 的 VIX GVZ OVX 是反应公众恐慌程度的三个重要指标。
 # cboe_vix_gvz_ovx_monitor
 A monitor for the cboe futures of vix, gvz and ovx, which are the most important market's index to show the public's panic.
 
+# how to use
+```bash
+pip install
+# copy and edit your push.ini if needed.
+cp ./data/push.back.ini ./data/push.ini
+# nohup start the monitor
+bash ./start_monitor.sh
+# check if any error occurred
+tail ./nohup.out
+```
+
 ## 特别感谢 Thanks for:
 #### https://github.com/kostasmetaxas/vixfuturesdatabridge.git
 #### https://github.com/black-swan-2/VIX_Master.git
