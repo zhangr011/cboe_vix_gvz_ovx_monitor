@@ -5,7 +5,7 @@ from .logger import logger
 
 from abc import abstractclassmethod, ABCMeta
 from enum import Enum
-import os, re, configparser, traceback, urllib, urllib3, requests
+import os, re, configparser, traceback, urllib, urllib3, requests, http
 import pandas as pd
 import pandas_datareader as pdr
 
@@ -66,7 +66,8 @@ class IRemoteData(metaclass = ABCMeta):
                 data = self.do_sync_data()
                 logger.info(f'{self.get_local_path()} downloaded. ')
                 return data
-            except (urllib.error.URLError,
+            except (http.client.RemoteDisconnected,
+                    urllib.error.URLError,
                     urllib.error.HTTPError,
                     urllib3.exceptions.MaxRetryError,
                     requests.exceptions.ConnectionError):
