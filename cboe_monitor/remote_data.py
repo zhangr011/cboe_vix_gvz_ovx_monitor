@@ -1,6 +1,8 @@
 #encoding: UTF-8
 
-from .utilities import check_file_integrity, CHECK_SECTION, INDEX_KEY
+from .utilities import \
+    CHECK_SECTION, INDEX_KEY, DATE_FORMAT, \
+    check_file_integrity, load_vix_by_csv
 from .logger import logger
 
 from abc import abstractclassmethod, ABCMeta
@@ -99,12 +101,32 @@ class RemoteHttpData(IRemoteData):
 class RemoteYahooData(IRemoteData):
 
     #----------------------------------------------------------------------
+    def get_last_index(self):
+        """get the local last index"""
+        try:
+            df = load_vix_by_csv(self.get_local_path())
+            return df.index[-1], df
+        except (FileNotFoundError, IndexError):
+            return None, None
+
+    #----------------------------------------------------------------------
     def do_sync_data(self):
         """sync the data"""
-        data = pdr.get_data_yahoo(self.remote_path)
+        li, ldf = self.get_last_index()
+        data = pdr.get_data_yahoo(self.remote_path, start = li)
         data.index.rename(INDEX_KEY, inplace = True)
         # with index
-        data.to_csv(path_or_buf = self.get_local_path())
+        if ldf is None:
+            data.to_csv(path_or_buf = self.get_local_path())
+        else:
+            # append data to the local path, this is not work due to the last
+            # row is changed from time to time
+            # data.to_csv(path_or_buf = self.get_local_path(), mode = 'a', header = False)
+            data.index = data.index.strftime(DATE_FORMAT)
+            data = pd.concat([ldf, data])
+            # drop the duplicated index rows
+            data = data[~data.index.duplicated(keep = 'last')]
+            data.to_csv(path_or_buf = self.get_local_path())
         return data
 
 
