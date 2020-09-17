@@ -2,6 +2,7 @@
 /data
 /test/data/VIX.csv
 nohup.out
+cboe_monitor.pid
 
 __pycache__
 *.pyc

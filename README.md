@@ -12,7 +12,7 @@ pip3 install .
 # copy and edit your push.ini if needed.
 cp ./data/push.back.ini ./data/push.ini
 # start the monitor at back
-bash ./start_monitor.sh &
+bash ./start_monitor.sh restart&
 # check if any error occurred
 tail ./nohup.out
 ```
