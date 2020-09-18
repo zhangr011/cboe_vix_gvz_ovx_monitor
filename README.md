@@ -28,5 +28,5 @@ tail ./nohup.out
 ### 0.3.0 - vix 期货升贴水结构识别（contango or backwardation of vix futures）
 ### 0.4.0 - 通知（notification with wxpush）
 ### 0.5.0 - 任务调度（task schedule）
+### 0.6.0 - bug fixed & features enhancement
 ## update schedule:
-### 0.6.0 - bug fixed
