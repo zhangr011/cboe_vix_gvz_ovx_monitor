@@ -6,9 +6,11 @@ import os
 from cboe_monitor.utilities import \
     TEST_DATA_ROOT, DATE_FORMAT, \
     run_over_time_frame, get_file_path, \
-    check_data_integrity, generate_csv_checksums, generate_futures_chain
+    check_data_integrity, generate_csv_checksums, generate_futures_chain, \
+    index_distribution_of_per
 
 import pandas_datareader as pdr
+import pandas as pd
 from datetime import datetime
 
 
@@ -69,12 +71,27 @@ class TestUnititiesCase(ut.TestCase):
     #----------------------------------------------------------------------
     def testFuturesChain(self):
         """"""
-        gcs = generate_futures_chain('GC', 'CMX')
+        gcs = generate_futures_chain('GC', 'CMX', '2020-09-16')
         self.assertEqual(True, 'GCZ20.CMX' in gcs)
-        cls = generate_futures_chain('CL', 'NYM')
-        start = datetime.now().strftime(DATE_FORMAT)
-        res = pdr.get_data_yahoo(cls, start = start)
-        self.assertEqual((12, 6), res.shape)
+        self.assertEqual(True, 'GCX20.CMX' in gcs)
+        self.assertEqual(True, 'GCU20.CMX' in gcs)
+        self.assertEqual(True, 'GCU21.CMX' in gcs)
+        cls = generate_futures_chain('CL', 'NYM', '2020-12-16')
+        self.assertEqual(True, 'CLZ20.NYM' in cls)
+        self.assertEqual(True, 'CLZ21.NYM' in cls)
+        self.assertEqual(True, 'CLX21.NYM' in cls)
+
+    #----------------------------------------------------------------------
+    def testIndexDistribute(self):
+        """"""
+        self.assertEqual(list(range(1, 100)), index_distribution_of_per(100))
+        self.assertEqual(list(range(2, 101)), index_distribution_of_per(101))
+        target = list(range(3, 102))
+        target[0] = 2
+        self.assertEqual(target, index_distribution_of_per(102))
+        target = list(range(2, 200, 2))
+        self.assertEqual(target, index_distribution_of_per(199))
+        self.assertEqual(target, index_distribution_of_per(200))
 
 
 if __name__ == '__main__':

@@ -10,9 +10,8 @@ from cboe_monitor.utilities import \
     run_over_time_frame, filter_delivery_dates, shift_delivery_dates, \
     generate_term_structure, load_futures_by_csv, combine_data, \
     combine_all, is_futures_file, \
-    analyze_diff_percent, mk_notification
-from cboe_monitor.data_manager import VIXDataManager
-
+    analyze_diff_percent, mk_notification, mk_notification_params
+from cboe_monitor.data_manager import VIXDataManager, GVZDataManager, OVXDataManager
 
 
 def mk_datetime_key(date_str: str):
@@ -138,9 +137,14 @@ class TestAnalyze(ut.TestCase):
         delivery_dates, schedule_days = run_over_time_frame()
         mgr = VIXDataManager(delivery_dates)
         df = mgr.combine_all()
-        per, vix, gvz, ovx = mgr.analyze()
-        msg = mk_notification(df, per, vix, gvz, ovx)
-        self.assertEqual('', msg)
+        rets_v = mgr.analyze()
+        gvz = GVZDataManager()
+        rets_g = gvz.analyze()
+        ovx = OVXDataManager()
+        rets_o = ovx.analyze()
+        params = mk_notification_params(df, rets_v, rets_g, rets_o)
+        msg = mk_notification(**params)
+        print(msg)
 
 
 if __name__ == '__main__':

@@ -1,8 +1,8 @@
 # encoding: UTF-8
 
 from cboe_monitor.utilities import \
-    run_over_time_frame, mk_notification, is_business_day
-from cboe_monitor.data_manager import VIXDataManager
+    run_over_time_frame, mk_notification, mk_notification_params, is_business_day
+from cboe_monitor.data_manager import VIXDataManager, GVZDataManager, OVXDataManager
 from cboe_monitor.schedule_manager import ScheduleManager
 from cboe_monitor.util_wechat import send_wx_msg
 from cboe_monitor.logger import logger
@@ -27,13 +27,23 @@ class MonitorScheduleManager(ScheduleManager):
         vdm = VIXDataManager(delivery_dates)
         vdm.download_raw_data()
         df = vdm.combine_all()
-        percent, vix, gvz, ovx = vdm.analyze()
-        msg = mk_notification(df, percent, vix, gvz, ovx)
-        send_wx_msg(msg)
+        rets_vix = vdm.analyze()
+        # gvz futures are delisted
+        gvzm = GVZDataManager([])
+        gvzm.download_raw_data()
+        rets_gvzm = gvzm.analyze()
+        # ovx futures are delisted
+        ovxm = OVXDataManager([])
+        ovxm.download_raw_data()
+        rets_ovxm = ovxm.analyze()
+        params = mk_notification_params(df, rets_vix, rets_gvzm, rets_ovxm)
+        msg = mk_notification(**params)
+        logger.info(f'{msg}')
+        # send_wx_msg(msg)
         logger.info('schedule task done. ')
 
 
 if __name__ == '__main__':
-    mgr = MonitorScheduleManager(False)
+    mgr = MonitorScheduleManager(True)
     while True:
         sleep(1)

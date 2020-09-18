@@ -18,7 +18,7 @@ class SYNC_DATA_MODE(Enum):
     PANDAS_DATAREADER = 2
 
 
-FIX_FILE_PATTERN = re.compile(r'\^')
+FIX_FILE_PATTERN = re.compile(r'\^|\=')
 
 
 #----------------------------------------------------------------------
@@ -72,7 +72,8 @@ class IRemoteData(metaclass = ABCMeta):
                     urllib.error.URLError,
                     urllib.error.HTTPError,
                     urllib3.exceptions.MaxRetryError,
-                    requests.exceptions.ConnectionError):
+                    requests.exceptions.ConnectionError,
+                    pdr._utils.RemoteDataError):
                 # for network error handling
                 logger.error(f'{self.remote_path} download failed: {traceback.format_exc(limit = 0)}')
             except:

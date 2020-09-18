@@ -1,6 +1,6 @@
 # encoding: UTF-8
 
-import os, datetime, hashlib, glob, re
+import os, sys, datetime, hashlib, glob, re
 import pandas as pd
 import numpy as np
 import pandas_market_calendars as market_cal
@@ -31,6 +31,9 @@ CHECK_SECTION = 'checksum'
 INDEX_KEY = 'Trade Date'
 SETTLE_PRICE_NAME = 'Settle'
 CLOSE_PRICE_NAME = 'Close'
+
+# about 3 years
+HV_DISTRIBUTION_PERIODS = 260 * 3
 
 FUTURES_CHAIN = ['F', 'G', 'H', 'J', 'K', 'M', 'N', 'Q', 'U', 'V', 'X', 'Z']
 
@@ -272,11 +275,69 @@ def close_ma5_ma10_ma20(df: pd.DataFrame):
 
 
 #----------------------------------------------------------------------
-def generate_futures_chain(symbol: str, suffix: str):
+def index_distribution_of_per(size: int):
+    """calculate the index to split a list"""
+    min_delta = int(np.floor(size / 100))
+    remain = size - min_delta * 100
+    # remain to the bottom
+    li = []
+    for idx in range(99):
+        delta = min_delta
+        if remain > 0:
+            delta += 1
+            remain -= 1
+        if 0 == idx:
+            li.append(delta)
+        else:
+            li.append(li[-1] + delta)
+    return li
+
+
+#----------------------------------------------------------------------
+def percent_distribution_list(hvs: pd.Series):
+    """calculate the percentage value list"""
+    sorted_hvs = hvs.dropna().sort_values()
+    size = sorted_hvs.shape[0]
+    if size < HV_DISTRIBUTION_PERIODS:
+        # not enough size,  return empty list
+        return []
+    else:
+        sorted_hvs = sorted_hvs[-HV_DISTRIBUTION_PERIODS:]
+        idxes = index_distribution_of_per(HV_DISTRIBUTION_PERIODS)
+        return map(lambda idx: sorted_hvs.iloc[idx], idxes)
+
+
+#----------------------------------------------------------------------
+def percent_distribution(vix: pd.Series, val: float = None):
+    """calculate the percentage of the value at"""
+    dis = percent_distribution_list(vix)
+    if [] == dis:
+        # not enough distribution, return 50
+        return 50
+    if val is None:
+        val = vix.iloc[-1]
+    ret = 0
+    for tval in dis:
+        if val > tval:
+            ret += 1
+        else:
+            break
+    return ret
+
+
+#----------------------------------------------------------------------
+def generate_futures_chain(symbol: str, suffix: str, date: str = None):
     """generate the futures chain of symbol"""
-    now = datetime.datetime.now()
-    month = now.month
-    year = now.year
+    if not symbol or not suffix:
+        return []
+    if date is None:
+        now = datetime.datetime.now()
+        month = now.month
+        year = now.year
+    else:
+        now = datetime.datetime.strptime(date, DATE_FORMAT)
+        month = now.month
+        year = now.year
     chain = []
     for idx, mflag in enumerate(FUTURES_CHAIN):
         if idx + 1 <= month:
@@ -287,23 +348,84 @@ def generate_futures_chain(symbol: str, suffix: str):
 
 
 #----------------------------------------------------------------------
-def mk_notification(futures: pd.DataFrame, percent: pd.DataFrame,
-                    vix: pd.DataFrame, gvz: pd.DataFrame, ovx: pd.DataFrame):
-    if np.alltrue(percent.iloc[-5:][1] > 0.02):
+def format_index(df: pd.DataFrame):
+    """format the index of DataFrame"""
+    df.index = df.index.str.replace(r'\d{4}-', '')
+    df.index.rename('Date', inplace = True)
+
+
+#----------------------------------------------------------------------
+def calc_percentage(vx: pd.DataFrame):
+    """calculate the percentage"""
+    historical_max_min_per(vx)
+    vx['per'] = vx.Close.rolling(HV_DISTRIBUTION_PERIODS).apply(lambda rows: percent_distribution(rows))
+    vx_51 = vx.iloc[-5:].loc[:, [CLOSE_PRICE_NAME, 'mmper', 'per']]
+    format_index(vx_51)
+    return vx_51
+
+
+#----------------------------------------------------------------------
+def historical_max_min_per(df: pd.DataFrame):
+    """mark the historical max an min in the dataframe"""
+    # according to:
+    # https://stackoverflow.com/questions/61759149/apply-a-function-on-a-dataframe-that-depend-on-the-previous-row-values
+    # NOTE: I rename the variables with _ to avoid using builtin method names
+    max_ = sys.float_info.min
+    min_ = sys.float_info.max
+    # list for the results
+    l_res = []
+    for value in df.Close.to_numpy():
+        # iterate over the values
+        if value >= max_:
+            max_ = value
+        if value <= min_:
+            min_ = value
+        # append the results in the list
+        ratio = 100
+        if max_ - min_ > 0:
+            ratio = round((value - min_) * 100 / (max_ - min_))
+        l_res.append([max_, min_, ratio])
+    # create the three columns outside of the loop
+    df[['Max', 'Min', 'mmper']] = pd.DataFrame(l_res, index = df.index)
+
+
+#----------------------------------------------------------------------
+def mk_notification_params(vix_futures: pd.DataFrame, rets_vix: dict,
+                           rets_gvz: dict, rets_ovx: dict):
+    """make the notification's params"""
+    rets = {'vix_futures': vix_futures}
+    rets.update(rets_vix)
+    rets.update(rets_gvz)
+    rets.update(rets_ovx)
+    return rets
+
+
+#----------------------------------------------------------------------
+def mk_notification(vix_futures: pd.DataFrame, vix_diff: pd.DataFrame,
+                    vix: pd.DataFrame,
+                    gvz: pd.DataFrame = None,
+                    ovx: pd.DataFrame = None):
+    """make the notification msg from the params"""
+    if np.alltrue(vix_diff.iloc[-5:][1] > 0.02):
         per_msg = 'vix 2/1 is safe now. '
-    elif np.any(percent.iloc[-5:][1] < -0.02):
+    elif np.any(vix_diff.iloc[-5:][1] < -0.02):
         per_msg = 'vix 2/1 warning!!!! '
     else:
         per_msg = 'vix is ok. '
     # combine the result
-    futures_521 = futures.iloc[-5:, [0, 1]]
-    percent_51 = percent.iloc[-5:, [0]]
+    futures_521 = vix_futures.iloc[-5:, [0, 1]]
+    vix_diff_51 = vix_diff.iloc[-5:, [0]]
     futures_521 = futures_521.applymap(lambda x: f"{x:.2f}")
-    futures_521['f2/1'] = percent_51[1].apply(lambda x: f"{x:.1%}")
+    futures_521['f2/1'] = vix_diff_51[1].apply(lambda x: f"{x:.1%}")
     # clear the year info of Trade Date
-    futures_521.index = futures_521.index.str.replace(r'\d{4}-', '')
-    futures_521.index.rename('Date', inplace = True)
-    return f'{per_msg}\n{futures_521.to_markdown()}'
+    format_index(futures_521)
+    # calculate the vix percentage
+    vix_51 = calc_percentage(vix)
+    # calculate the gvz percentage
+    gvz_51 = calc_percentage(gvz)
+    # calculate the ovx percentage
+    ovx_51 = calc_percentage(ovx)
+    return f"""{per_msg}\n{futures_521.to_markdown()}\nvix: \n{vix_51.to_markdown()}\ngvz: \n{gvz_51.to_markdown()}\novx: \n{ovx_51.to_markdown()}"""
 
 
 #----------------------------------------------------------------------
