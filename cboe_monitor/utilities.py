@@ -348,8 +348,10 @@ def generate_futures_chain(symbol: str, suffix: str, date: str = None):
 
 
 #----------------------------------------------------------------------
-def format_index(df: pd.DataFrame):
+def format_index(df: pd.DataFrame, delivery_dates: list = []):
     """format the index of DataFrame"""
+    if delivery_dates != []:
+        df['d'] = df.apply(lambda row: 'd' if row.name in delivery_dates else '', axis = 1)
     df.index = df.index.str.replace(r'\d{4}-', '')
     df.index.rename('Date', inplace = True)
 
@@ -390,10 +392,12 @@ def historical_max_min_per(df: pd.DataFrame):
 
 
 #----------------------------------------------------------------------
-def mk_notification_params(vix_futures: pd.DataFrame, rets_vix: dict,
+def mk_notification_params(vix_futures: pd.DataFrame,
+                           delivery_dates: list,
+                           rets_vix: dict,
                            rets_gvz: dict, rets_ovx: dict):
     """make the notification's params"""
-    rets = {'vix_futures': vix_futures}
+    rets = {'vix_futures': vix_futures, 'delivery_dates': delivery_dates}
     rets.update(rets_vix)
     rets.update(rets_gvz)
     rets.update(rets_ovx)
@@ -401,7 +405,9 @@ def mk_notification_params(vix_futures: pd.DataFrame, rets_vix: dict,
 
 
 #----------------------------------------------------------------------
-def mk_notification(vix_futures: pd.DataFrame, vix_diff: pd.DataFrame,
+def mk_notification(vix_futures: pd.DataFrame,
+                    delivery_dates: list,
+                    vix_diff: pd.DataFrame,
                     vix: pd.DataFrame,
                     gvz: pd.DataFrame = None,
                     ovx: pd.DataFrame = None):
@@ -418,7 +424,7 @@ def mk_notification(vix_futures: pd.DataFrame, vix_diff: pd.DataFrame,
     futures_521 = futures_521.applymap(lambda x: f"{x:.2f}")
     futures_521['f2/1'] = vix_diff_51[1].apply(lambda x: f"{x:.1%}")
     # clear the year info of Trade Date
-    format_index(futures_521)
+    format_index(futures_521, delivery_dates)
     # calculate the vix percentage
     vix_51, vmax, vmin = calc_percentage(vix)
     # calculate the gvz percentage

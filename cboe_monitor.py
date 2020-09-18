@@ -36,7 +36,7 @@ class MonitorScheduleManager(ScheduleManager):
         ovxm = OVXDataManager([])
         ovxm.download_raw_data()
         rets_ovxm = ovxm.analyze()
-        params = mk_notification_params(df, rets_vix, rets_gvzm, rets_ovxm)
+        params = mk_notification_params(df, delivery_dates, rets_vix, rets_gvzm, rets_ovxm)
         msg = mk_notification(**params)
         send_wx_msg(msg)
         logger.info('schedule task done. ')

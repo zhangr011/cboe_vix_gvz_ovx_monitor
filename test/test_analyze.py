@@ -142,7 +142,7 @@ class TestAnalyze(ut.TestCase):
         rets_g = gvz.analyze()
         ovx = OVXDataManager()
         rets_o = ovx.analyze()
-        params = mk_notification_params(df, rets_v, rets_g, rets_o)
+        params = mk_notification_params(df, delivery_dates, rets_v, rets_g, rets_o)
         msg = mk_notification(**params)
         print(msg)
 
