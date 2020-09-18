@@ -361,7 +361,7 @@ def calc_percentage(vx: pd.DataFrame):
     vx['per'] = vx.Close.rolling(HV_DISTRIBUTION_PERIODS).apply(lambda rows: percent_distribution(rows))
     vx_51 = vx.iloc[-5:].loc[:, [CLOSE_PRICE_NAME, 'mmper', 'per']]
     format_index(vx_51)
-    return vx_51
+    return vx_51, vx.iloc[-1].loc['Max'], vx.iloc[-1].loc['Min']
 
 
 #----------------------------------------------------------------------
@@ -420,12 +420,12 @@ def mk_notification(vix_futures: pd.DataFrame, vix_diff: pd.DataFrame,
     # clear the year info of Trade Date
     format_index(futures_521)
     # calculate the vix percentage
-    vix_51 = calc_percentage(vix)
+    vix_51, vmax, vmin = calc_percentage(vix)
     # calculate the gvz percentage
-    gvz_51 = calc_percentage(gvz)
+    gvz_51, gmax, gmin = calc_percentage(gvz)
     # calculate the ovx percentage
-    ovx_51 = calc_percentage(ovx)
-    return f"""{per_msg}\n{futures_521.to_markdown()}\nvix: \n{vix_51.to_markdown()}\ngvz: \n{gvz_51.to_markdown()}\novx: \n{ovx_51.to_markdown()}"""
+    ovx_51, omax, omin = calc_percentage(ovx)
+    return f"""{per_msg}\n{futures_521.to_markdown()}\nvix: {vmin:.2f} - {vmax:.2f}\n{vix_51.to_markdown()}\ngvz: {gmin:.2f} - {gmax:.2f}\n{gvz_51.to_markdown()}\novx: {omin:.2f} - {omax:.2f}\n{ovx_51.to_markdown()}"""
 
 
 #----------------------------------------------------------------------
