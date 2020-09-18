@@ -4,7 +4,7 @@ from .utilities import \
     CHECK_SECTION, make_sure_dirs_exist, \
     get_file_path, generate_csv_checksums, combine_all, \
     analyze_diff_percent, load_futures_by_csv, load_vix_by_csv, \
-    close_ma5_ma10_ma20
+    close_ma5_ma10_ma20, generate_futures_chain
 from .remote_data import RemoteDataFactory, SYNC_DATA_MODE
 from .logger import logger
 
@@ -17,6 +17,9 @@ class DataManager():
 
     futures_link = ''
     symbols = []
+    # futures target info
+    futures_target = ''
+    futures_suffix = ''
     data_path = ''
     ini_path = ''
 
@@ -117,6 +120,9 @@ class GVZDataManager(DataManager):
     # deprecated due to the furtures are delisted
     futures_link = 'https://markets.cboe.com/us/futures/market_statistics/historical_data/products/csv/GV/'
     symbols = []
+    # GC=F, GCX20.CMX, GCZ20.CMX, GCH21.CMX etc
+    futures_target = 'GC'
+    futures_suffix = 'CMX'
     data_path = get_file_path('gvz')
     ini_path = get_file_path('gvz.ini')
 
@@ -127,5 +133,8 @@ class OVXDataManager(DataManager):
     # deprecated due to the furtures are delisted
     futures_link = 'https://markets.cboe.com/us/futures/market_statistics/historical_data/products/csv/OV/'
     symbols = []
+    # CL=F, CLX20.NYM, CLH21.NYM
+    futures_target = 'CL'
+    futures_suffix = 'NYM'
     data_path = get_file_path('ovx')
     ini_path = get_file_path('ovx.ini')

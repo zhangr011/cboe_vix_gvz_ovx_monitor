@@ -32,6 +32,8 @@ INDEX_KEY = 'Trade Date'
 SETTLE_PRICE_NAME = 'Settle'
 CLOSE_PRICE_NAME = 'Close'
 
+FUTURES_CHAIN = ['F', 'G', 'H', 'J', 'K', 'M', 'N', 'Q', 'U', 'V', 'X', 'Z']
+
 
 #----------------------------------------------------------------------
 def is_business_day(input_date, schedule_days):
@@ -270,6 +272,21 @@ def close_ma5_ma10_ma20(df: pd.DataFrame):
 
 
 #----------------------------------------------------------------------
+def generate_futures_chain(symbol: str, suffix: str):
+    """generate the futures chain of symbol"""
+    now = datetime.datetime.now()
+    month = now.month
+    year = now.year
+    chain = []
+    for idx, mflag in enumerate(FUTURES_CHAIN):
+        if idx + 1 <= month:
+            chain.append(f'{symbol}{mflag}{(year + 1) % 100}.{suffix}')
+        if idx + 1 >= month:
+            chain.append(f'{symbol}{mflag}{year % 100}.{suffix}')
+    return chain
+
+
+#----------------------------------------------------------------------
 def mk_notification(futures: pd.DataFrame, percent: pd.DataFrame,
                     vix: pd.DataFrame, gvz: pd.DataFrame, ovx: pd.DataFrame):
     if np.alltrue(percent.iloc[-5:][1] > 0.02):
@@ -281,9 +298,11 @@ def mk_notification(futures: pd.DataFrame, percent: pd.DataFrame,
     # combine the result
     futures_521 = futures.iloc[-5:, [0, 1]]
     percent_51 = percent.iloc[-5:, [0]]
-    futures_521['f2/1'] = percent_51[1]
+    futures_521 = futures_521.applymap(lambda x: f"{x:.2f}")
+    futures_521['f2/1'] = percent_51[1].apply(lambda x: f"{x:.1%}")
     # clear the year info of Trade Date
     futures_521.index = futures_521.index.str.replace(r'\d{4}-', '')
+    futures_521.index.rename('Date', inplace = True)
     return f'{per_msg}\n{futures_521.to_markdown()}'
 
 

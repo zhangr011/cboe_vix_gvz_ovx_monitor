@@ -4,9 +4,12 @@ import unittest as ut
 import os
 
 from cboe_monitor.utilities import \
-    TEST_DATA_ROOT, \
+    TEST_DATA_ROOT, DATE_FORMAT, \
     run_over_time_frame, get_file_path, \
-    check_data_integrity, generate_csv_checksums
+    check_data_integrity, generate_csv_checksums, generate_futures_chain
+
+import pandas_datareader as pdr
+from datetime import datetime
 
 
 #----------------------------------------------------------------------
@@ -62,6 +65,16 @@ class TestUnititiesCase(ut.TestCase):
         self.assertEqual('2020-10-21', seq[93])
         self.assertEqual('2020-11-18', seq[94])
         self.assertEqual('2020-12-16', seq[95])
+
+    #----------------------------------------------------------------------
+    def testFuturesChain(self):
+        """"""
+        gcs = generate_futures_chain('GC', 'CMX')
+        self.assertEqual(True, 'GCZ20.CMX' in gcs)
+        cls = generate_futures_chain('CL', 'NYM')
+        start = datetime.now().strftime(DATE_FORMAT)
+        res = pdr.get_data_yahoo(cls, start = start)
+        self.assertEqual((12, 6), res.shape)
 
 
 if __name__ == '__main__':
