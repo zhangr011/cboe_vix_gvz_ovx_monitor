@@ -44,5 +44,6 @@ class MonitorScheduleManager(ScheduleManager):
 
 if __name__ == '__main__':
     mgr = MonitorScheduleManager(False)
+    logger.info('cboe monitor started. ')
     while True:
         sleep(1)
