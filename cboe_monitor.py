@@ -38,12 +38,11 @@ class MonitorScheduleManager(ScheduleManager):
         rets_ovxm = ovxm.analyze()
         params = mk_notification_params(df, rets_vix, rets_gvzm, rets_ovxm)
         msg = mk_notification(**params)
-        logger.info(f'{msg}')
-        # send_wx_msg(msg)
+        send_wx_msg(msg)
         logger.info('schedule task done. ')
 
 
 if __name__ == '__main__':
-    mgr = MonitorScheduleManager(True)
+    mgr = MonitorScheduleManager(False)
     while True:
         sleep(1)
