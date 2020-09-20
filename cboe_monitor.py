@@ -6,7 +6,7 @@ from cboe_monitor.data_manager import VIXDataManager, GVZDataManager, OVXDataMan
 from cboe_monitor.schedule_manager import ScheduleManager
 from cboe_monitor.util_wechat import send_wx_msg
 from cboe_monitor.logger import logger
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from time import sleep
 
 
@@ -20,7 +20,7 @@ class MonitorScheduleManager(ScheduleManager):
         """"""
         logger.info('start schedule task. ')
         delivery_dates, schedule_days = run_over_time_frame()
-        last_day = datetime.now(tz = timezone.utc) - timedelta(days = 1)
+        last_day = datetime.now(tz = timezone.utc)
         if not is_business_day(last_day, schedule_days):
             logger.info('last day is not a business day. ')
             return
