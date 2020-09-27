@@ -29,4 +29,5 @@ tail ./nohup.out
 ### 0.4.0 - 通知（notification with wxpush）
 ### 0.5.0 - 任务调度（task schedule）
 ### 0.6.0 - bug fixed & features enhancement
+### 0.7.0 - 钉钉通知（notification with dingding）
 ## update schedule:

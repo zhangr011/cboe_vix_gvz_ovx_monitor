@@ -4,7 +4,7 @@ from cboe_monitor.utilities import \
     run_over_time_frame, mk_notification, mk_notification_params, is_business_day
 from cboe_monitor.data_manager import VIXDataManager, GVZDataManager, OVXDataManager
 from cboe_monitor.schedule_manager import ScheduleManager
-from cboe_monitor.util_wechat import send_wx_msg
+from cboe_monitor.util_dingding import send_md_msg
 from cboe_monitor.logger import logger
 from datetime import datetime, timezone
 from time import sleep
@@ -37,8 +37,8 @@ class MonitorScheduleManager(ScheduleManager):
         ovxm.download_raw_data()
         rets_ovxm = ovxm.analyze()
         params = mk_notification_params(df, delivery_dates, rets_vix, rets_gvzm, rets_ovxm)
-        msg = mk_notification(**params)
-        send_wx_msg(msg)
+        title, msg = mk_notification(**params)
+        send_md_msg(title, msg)
         logger.info('schedule task done. ')
 
 

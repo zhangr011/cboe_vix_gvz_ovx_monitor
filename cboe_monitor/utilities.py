@@ -37,6 +37,11 @@ HV_DISTRIBUTION_PERIODS = 260 * 3
 
 FUTURES_CHAIN = ['F', 'G', 'H', 'J', 'K', 'M', 'N', 'Q', 'U', 'V', 'X', 'Z']
 
+# markdown head and \n replace
+MD_HEAD_PATTERN = re.compile(r'\|(:?-{3,}:?\|){4,}\n')
+MD_FORMAT_PATTERN = re.compile(r'\n')
+MD_FORMAT_TO = r'\n\n'
+
 
 #----------------------------------------------------------------------
 def is_business_day(input_date, schedule_days):
@@ -353,6 +358,7 @@ def format_index(df: pd.DataFrame, delivery_dates: list = []):
     if delivery_dates != []:
         df['d'] = df.apply(lambda row: 'd' if row.name in delivery_dates else '', axis = 1)
     df.index = df.index.str.replace(r'\d{4}-', '')
+    df.index = df.index.str.replace('-', '')
     df.index.rename('Date', inplace = True)
 
 
@@ -361,7 +367,7 @@ def calc_percentage(vx: pd.DataFrame):
     """calculate the percentage"""
     historical_max_min_per(vx)
     vx['per'] = vx.Close.rolling(HV_DISTRIBUTION_PERIODS).apply(lambda rows: percent_distribution(rows))
-    vx_51 = vx.iloc[-5:].loc[:, [CLOSE_PRICE_NAME, 'mmper', 'per']]
+    vx_51 = vx.iloc[-5:].loc[:, [CLOSE_PRICE_NAME, 'mper', 'per']]
     format_index(vx_51)
     return vx_51, vx.iloc[-1].loc['Max'], vx.iloc[-1].loc['Min']
 
@@ -388,7 +394,7 @@ def historical_max_min_per(df: pd.DataFrame):
             ratio = round((value - min_) * 100 / (max_ - min_))
         l_res.append([max_, min_, ratio])
     # create the three columns outside of the loop
-    df[['Max', 'Min', 'mmper']] = pd.DataFrame(l_res, index = df.index)
+    df[['Max', 'Min', 'mper']] = pd.DataFrame(l_res, index = df.index)
 
 
 #----------------------------------------------------------------------
@@ -402,6 +408,21 @@ def mk_notification_params(vix_futures: pd.DataFrame,
     rets.update(rets_gvz)
     rets.update(rets_ovx)
     return rets
+
+
+#----------------------------------------------------------------------
+def notify_format(df: pd.DataFrame):
+    """format the dataframe for notification"""
+    return df.to_markdown()
+
+
+#----------------------------------------------------------------------
+def notify_format_content(content: str):
+    """format the string"""
+    # clear the table head
+    content = MD_HEAD_PATTERN.subn('', content)[0]
+    # make sure two space besides the \n
+    return MD_FORMAT_PATTERN.subn(MD_FORMAT_TO, content)[0]
 
 
 #----------------------------------------------------------------------
@@ -421,7 +442,7 @@ def mk_notification(vix_futures: pd.DataFrame,
     # combine the result
     futures_521 = vix_futures.iloc[-5:, [0, 1]]
     vix_diff_51 = vix_diff.iloc[-5:, [0]]
-    futures_521 = futures_521.applymap(lambda x: f"{x:.2f}")
+    futures_521 = futures_521.applymap(lambda x: f"{x:.1f}")
     futures_521['f2/1'] = vix_diff_51[1].apply(lambda x: f"{x:.1%}")
     # clear the year info of Trade Date
     format_index(futures_521, delivery_dates)
@@ -431,7 +452,17 @@ def mk_notification(vix_futures: pd.DataFrame,
     gvz_51, gmax, gmin = calc_percentage(gvz)
     # calculate the ovx percentage
     ovx_51, omax, omin = calc_percentage(ovx)
-    return f"""{per_msg}\n{futures_521.to_markdown()}\nvix: {vmin:.2f} - {vmax:.2f}\n{vix_51.to_markdown()}\ngvz: {gmin:.2f} - {gmax:.2f}\n{gvz_51.to_markdown()}\novx: {omin:.2f} - {omax:.2f}\n{ovx_51.to_markdown()}"""
+    content = f"""{notify_format(futures_521)}
+------------------------
+#### **vix:** {vmin:.2f} - {vmax:.2f}
+{notify_format(vix_51)}
+------------------------
+#### **gvz:** {gmin:.2f} - {gmax:.2f}
+{notify_format(gvz_51)}
+------------------------
+#### **ovx:** {omin:.2f} - {omax:.2f}
+{notify_format(ovx_51)}"""
+    return per_msg, notify_format_content(content)
 
 
 #----------------------------------------------------------------------
