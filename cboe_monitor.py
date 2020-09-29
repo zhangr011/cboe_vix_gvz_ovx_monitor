@@ -15,6 +15,7 @@ class MonitorScheduleManager(ScheduleManager):
 
     # UTC+8
     _crontab = '50 23 * * *'
+    _day_index = None
 
     def do_timeout(self):
         """"""
@@ -23,11 +24,17 @@ class MonitorScheduleManager(ScheduleManager):
         last_day = datetime.now(tz = timezone.utc)
         if not is_business_day(last_day, schedule_days):
             logger.info('last day is not a business day. ')
-            return
+            return self.clear_and_return_true()
         vdm = VIXDataManager(delivery_dates)
         vdm.download_raw_data()
         df = vdm.combine_all()
         rets_vix = vdm.analyze()
+        if self._day_index is None:
+            # mark the _day_index
+            self._day_index = rets_vix['vix'].index[-1]
+        if rets_vix['vix_diff'].index[-1] != self._day_index:
+            # vix diff is not pulled, retry 10 minutes later
+            return False
         # gvz futures are delisted
         gvzm = GVZDataManager([])
         gvzm.download_raw_data()
@@ -40,6 +47,12 @@ class MonitorScheduleManager(ScheduleManager):
         title, msg = mk_notification(**params)
         send_md_msg(title, msg)
         logger.info('schedule task done. ')
+        return self.clear_and_return_true()
+
+    def clear_and_return_true(self):
+        """clear the _day_index and return True"""
+        self._day_index = None
+        return True
 
 
 if __name__ == '__main__':
