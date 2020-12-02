@@ -34,8 +34,10 @@ class DataManager():
         self.check_ini()
 
     #----------------------------------------------------------------------
-    def download_raw_data(self):
+    def download_raw_data(self, downloaded = False):
         """download the data"""
+        if downloaded is True:
+            return
         make_sure_dirs_exist(self.data_path)
         logger.info(f'start downloading data from {self.futures_link}')
         to_update = []
