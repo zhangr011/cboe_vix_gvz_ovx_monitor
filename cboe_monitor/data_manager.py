@@ -46,12 +46,12 @@ class DataManager():
             rdata = data_fac.create(
                 sym, sym, SYNC_DATA_MODE.PANDAS_DATAREADER)
             to_update.append(rdata)
-        if self.futures_target:
-            # add the futures target
-            rdata = data_fac.create(
-                self.futures_target, self.futures_target,
-                SYNC_DATA_MODE.PANDAS_DATAREADER)
-            to_update.append(rdata)
+        # if self.futures_target:
+        #     # add the futures target
+        #     rdata = data_fac.create(
+        #         self.futures_target, self.futures_target,
+        #         SYNC_DATA_MODE.PANDAS_DATAREADER)
+        #     to_update.append(rdata)
         for sym in generate_futures_chain(self.futures_chain_prefix,
                                           self.futures_chain_suffix):
             # add the furtures chain
