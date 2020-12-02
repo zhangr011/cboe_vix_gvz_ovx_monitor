@@ -15,6 +15,7 @@ class MonitorScheduleManager(ScheduleManager):
 
     # UTC+8
     _crontab = '50 23 * * *'
+    _last_day = None
     _day_index = None
     _day_vix_downloaded = False
     _day_gvz_downloaded = False
@@ -24,8 +25,9 @@ class MonitorScheduleManager(ScheduleManager):
         """"""
         logger.info('start schedule task. ')
         delivery_dates, schedule_days = run_over_time_frame()
-        last_day = datetime.now(tz = timezone.utc)
-        if not is_business_day(last_day, schedule_days):
+        if self._last_day is None:
+            self._last_day = datetime.now(tz = timezone.utc)
+        if not is_business_day(self._last_day, schedule_days):
             logger.info('last day is not a business day. ')
             return self.clear_and_return_true()
         vdm = VIXDataManager(delivery_dates)
@@ -39,6 +41,7 @@ class MonitorScheduleManager(ScheduleManager):
             # vix diff is not pulled, retry 10 minutes later
             logger.info("vix info download failed. ")
             return False
+        self._day_vix_downloaded = True
         # gvz futures are delisted
         gvzm = GVZDataManager([])
         gvzm.download_raw_data(self._day_gvz_downloaded)
@@ -46,6 +49,7 @@ class MonitorScheduleManager(ScheduleManager):
         if rets_gvzm['gvz'].index[-1] != self._day_index:
             logger.info("gvz info download failed. ")
             return False
+        self._day_gvz_downloaded = True
         # ovx futures are delisted
         ovxm = OVXDataManager([])
         ovxm.download_raw_data(self._day_ovx_downloaded)
@@ -53,6 +57,7 @@ class MonitorScheduleManager(ScheduleManager):
         if rets_ovxm['ovx'].index[-1] != self._day_index:
             logger.info("ovx info download failed. ")
             return False
+        self._day_ovx_downloaded = True
         params = mk_notification_params(df, delivery_dates, rets_vix, rets_gvzm, rets_ovxm)
         title, msg = mk_notification(**params)
         send_md_msg(title, msg)
@@ -61,6 +66,7 @@ class MonitorScheduleManager(ScheduleManager):
 
     def clear_and_return_true(self):
         """clear the _day_index and return True"""
+        self._last_day = None
         self._day_index = None
         self._day_vix_downloaded = False
         self._day_gvz_downloaded = False
