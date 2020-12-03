@@ -51,6 +51,13 @@ def is_business_day(input_date, schedule_days):
 
 
 #----------------------------------------------------------------------
+def get_day_index(last_day: datetime, hour: int):
+    if last_day.hour < hour:
+        last_day = last_day + datetime.timedelta(days = -1)
+    return datetime.datetime.strftime(last_day, DATE_FORMAT)
+
+
+#----------------------------------------------------------------------
 def run_over_time_frame():
     """run over all the delivery dates"""
     logger.info("Calculating contract expiration dates...")

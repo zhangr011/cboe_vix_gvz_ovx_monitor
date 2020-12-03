@@ -1,7 +1,8 @@
 # encoding: UTF-8
 
 from cboe_monitor.utilities import \
-    run_over_time_frame, mk_notification, mk_notification_params, is_business_day
+    run_over_time_frame, get_day_index, \
+    mk_notification, mk_notification_params, is_business_day
 from cboe_monitor.data_manager import VIXDataManager, GVZDataManager, OVXDataManager
 from cboe_monitor.schedule_manager import ScheduleManager
 from cboe_monitor.util_dingding import send_md_msg
@@ -14,7 +15,8 @@ from time import sleep
 class MonitorScheduleManager(ScheduleManager):
 
     # UTC+8
-    _crontab = '50 23 * * *'
+    _update_hour = 23
+    _crontab = f'50 {_update_hour} * * *'
     _last_day = None
     _day_index = None
     _day_vix_downloaded = False
@@ -25,8 +27,8 @@ class MonitorScheduleManager(ScheduleManager):
         """"""
         logger.info('start schedule task. ')
         delivery_dates, schedule_days = run_over_time_frame()
-        if self._last_day is None:
-            self._last_day = datetime.now(tz = timezone.utc)
+        self._last_day = datetime.now(tz = timezone.utc)
+        self._day_index = get_day_index(self._last_day, self._update_hour)
         if not is_business_day(self._last_day, schedule_days):
             logger.info('last day is not a business day. ')
             return self.clear_and_return_true()
@@ -34,10 +36,8 @@ class MonitorScheduleManager(ScheduleManager):
         vdm.download_raw_data(self._day_vix_downloaded)
         df = vdm.combine_all()
         rets_vix = vdm.analyze()
-        if self._day_index is None:
-            # mark the _day_index
-            self._day_index = rets_vix['vix'].index[-1]
-        if rets_vix['vix_diff'].index[-1] != self._day_index:
+        if rets_vix['vix_diff'].index[-1] != self._day_index or \
+           rets_vix['vix'].index[-1] != self._day_index:
             # vix diff is not pulled, retry 10 minutes later
             logger.info("vix info download failed. ")
             return False

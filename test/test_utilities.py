@@ -4,7 +4,7 @@ import unittest as ut
 import os
 
 from cboe_monitor.utilities import \
-    TEST_DATA_ROOT, DATE_FORMAT, \
+    TEST_DATA_ROOT, DATE_FORMAT, get_day_index, \
     run_over_time_frame, get_file_path, \
     check_data_integrity, generate_csv_checksums, generate_futures_chain, \
     index_distribution_of_per
@@ -16,6 +16,16 @@ from datetime import datetime
 
 #----------------------------------------------------------------------
 class TestUnititiesCase(ut.TestCase):
+
+    #----------------------------------------------------------------------
+    def testDayIndex(self):
+        """test for get_day_index"""
+        _last_day1 = datetime.strptime("2020-12-02 0", "%Y-%m-%d %H")
+        _last_day2 = datetime.strptime("2020-12-02 22", "%Y-%m-%d %H")
+        _last_day3 = datetime.strptime("2020-12-02 23", "%Y-%m-%d %H")
+        self.assertEqual("2020-12-01", get_day_index(_last_day1, 23))
+        self.assertEqual("2020-12-01", get_day_index(_last_day2, 23))
+        self.assertEqual("2020-12-02", get_day_index(_last_day3, 23))
 
     #----------------------------------------------------------------------
     def testDataIntegrity(self):
