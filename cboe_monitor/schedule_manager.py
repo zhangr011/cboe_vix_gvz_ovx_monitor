@@ -42,8 +42,8 @@ class ScheduleManager(metaclass = Singleton):
         delay = get_delay_time(self._crontab)
         if True == doit and delay > CRONTAB_DOIT_MIN_DELAY:
             if not self.do_timeout():
-                # re_delay is 10 minutes
-                delay = 600
+                # re_delay is 5 minutes
+                delay = 300
         self._thread = threading.Timer(delay, self.timeout)
         self._thread.start()
 
