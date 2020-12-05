@@ -7,8 +7,17 @@ from cboe_monitor.data_manager import VIXDataManager, GVZDataManager, OVXDataMan
 from cboe_monitor.schedule_manager import ScheduleManager
 from cboe_monitor.util_dingding import send_md_msg
 from cboe_monitor.logger import logger
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from time import sleep
+
+
+#----------------------------------------------------------------------
+def get_last_day(update_hour):
+    current = datetime.now(tz = timezone.utc)
+    if current.hour >= update_hour:
+        return current
+    else:
+        return current + timedelta(days = -1)
 
 
 #----------------------------------------------------------------------
@@ -27,7 +36,7 @@ class MonitorScheduleManager(ScheduleManager):
         """"""
         logger.info('start schedule task. ')
         delivery_dates, schedule_days = run_over_time_frame()
-        self._last_day = datetime.now(tz = timezone.utc)
+        self._last_day = get_last_day(self._update_hour)
         self._day_index = get_day_index(self._last_day, self._update_hour)
         if not is_business_day(self._last_day, schedule_days):
             logger.info('last day is not a business day. ')
