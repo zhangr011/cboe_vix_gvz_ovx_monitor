@@ -30,4 +30,7 @@ tail ./nohup.out
 ### 0.5.0 - 任务调度（task schedule）
 ### 0.6.0 - bug fixed & features enhancement
 ### 0.7.0 - 钉钉通知（notification with dingding）
+### 0.8.0 - 数据从 yahoo http 下载（use yahoo http download instead of pandas_datareader）
+由于数据格式的问题，需要删除已经下载的 ./data/vix/VIX.csv ./data/gvz/GVZ.csv ./data/ovx/OVX.csv
+due to the data source changed, you maybe be need to delete the ./data/vix/VIX.csv ./data/gvz/GVZ.csv ./data/ovx/OVX.csv manually.
 ## update schedule:
