@@ -44,14 +44,14 @@ class DataManager():
         data_fac = RemoteDataFactory(self.data_path, self.ini_parser)
         for sym in self.symbols:
             rdata = data_fac.create(
-                sym, sym, SYNC_DATA_MODE.PANDAS_DATAREADER)
+                sym, sym, SYNC_DATA_MODE.HTTP_DOWNLOAD_YAHOO)
             to_update.append(rdata)
-        if self.futures_target:
-            # add the futures target
-            rdata = data_fac.create(
-                self.futures_target, self.futures_target,
-                SYNC_DATA_MODE.PANDAS_DATAREADER)
-            to_update.append(rdata)
+        # if self.futures_target:
+        #     # add the futures target
+        #     rdata = data_fac.create(
+        #         self.futures_target, self.futures_target,
+        #         SYNC_DATA_MODE.PANDAS_DATAREADER_YAHOO)
+        #     to_update.append(rdata)
         # for sym in generate_futures_chain(self.futures_chain_prefix,
         #                                   self.futures_chain_suffix):
         #     # add the furtures chain
@@ -122,6 +122,7 @@ class VIXDataManager(DataManager):
         # drop the first column, it's useless
         delta_p.drop(0, axis = 1, inplace = True)
         vix = load_vix_by_csv(os.path.join(self.data_path, 'VIX.csv'))
+        vix.dropna(subset = ['Close'], inplace = True)
         vix.drop(columns = ['Volume', 'Adj Close'], inplace = True)
         close_ma5_ma10_ma20(vix)
         return {'vix_diff': delta_p, 'vix' : vix}
@@ -145,6 +146,7 @@ class GVZDataManager(DataManager):
     def analyze(self):
         """analyze the data"""
         gvz = load_vix_by_csv(os.path.join(self.data_path, 'GVZ.csv'))
+        gvz.dropna(subset = ['Close'], inplace = True)
         gvz.drop(columns = ['Volume', 'Adj Close'], inplace = True)
         close_ma5_ma10_ma20(gvz)
         return {'gvz': gvz}
@@ -167,6 +169,7 @@ class OVXDataManager(DataManager):
     def analyze(self):
         """analyze the data"""
         ovx = load_vix_by_csv(os.path.join(self.data_path, 'OVX.csv'))
+        ovx.dropna(subset = ['Close'], inplace = True)
         ovx.drop(columns = ['Volume', 'Adj Close'], inplace = True)
         close_ma5_ma10_ma20(ovx)
         return {'ovx': ovx}

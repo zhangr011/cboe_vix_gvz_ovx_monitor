@@ -1,7 +1,7 @@
 # encoding: UTF-8
 
 from cboe_monitor.utilities import \
-    run_over_time_frame, get_day_index, \
+    DATE_FORMAT, run_over_time_frame, \
     mk_notification, mk_notification_params, is_business_day
 from cboe_monitor.data_manager import VIXDataManager, GVZDataManager, OVXDataManager
 from cboe_monitor.schedule_manager import ScheduleManager
@@ -37,7 +37,7 @@ class MonitorScheduleManager(ScheduleManager):
         logger.info('start schedule task. ')
         delivery_dates, schedule_days = run_over_time_frame()
         self._last_day = get_last_day(self._update_hour)
-        self._day_index = get_day_index(self._last_day, self._update_hour)
+        self._day_index = datetime.strftime(self._last_day, DATE_FORMAT)
         if not is_business_day(self._last_day, schedule_days):
             logger.info('last day is not a business day. ')
             return self.clear_and_return_true()
@@ -46,8 +46,9 @@ class MonitorScheduleManager(ScheduleManager):
         df = vdm.combine_all()
         rets_vix = vdm.analyze()
         if rets_vix['vix_diff'].index[-1] != self._day_index or \
-           rets_vix['vix'].index[-1] != self._day_index:
-            # vix diff is not pulled, retry 10 minutes later
+           self._day_index not in rets_vix['vix'].index:
+            # vix diff is not pulled, retry 5 minutes later
+            logger.info(f"last_day: {self._last_day}, index: {self._day_index}, vix_index: {rets_vix['vix'].index[-1]}, vix_diff_index: {rets_vix['vix_diff'].index[-1]}")
             logger.info("vix info download failed. ")
             return False
         self._day_vix_downloaded = True
@@ -55,7 +56,7 @@ class MonitorScheduleManager(ScheduleManager):
         gvzm = GVZDataManager([])
         gvzm.download_raw_data(self._day_gvz_downloaded)
         rets_gvzm = gvzm.analyze()
-        if rets_gvzm['gvz'].index[-1] != self._day_index:
+        if self._day_index not in rets_gvzm['gvz'].index:
             logger.info("gvz info download failed. ")
             return False
         self._day_gvz_downloaded = True
@@ -63,7 +64,7 @@ class MonitorScheduleManager(ScheduleManager):
         ovxm = OVXDataManager([])
         ovxm.download_raw_data(self._day_ovx_downloaded)
         rets_ovxm = ovxm.analyze()
-        if rets_ovxm['ovx'].index[-1] != self._day_index:
+        if self._day_index not in rets_ovxm['ovx'].index:
             logger.info("ovx info download failed. ")
             return False
         self._day_ovx_downloaded = True
