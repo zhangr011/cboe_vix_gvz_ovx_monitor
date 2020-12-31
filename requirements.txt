@@ -3,3 +3,4 @@ pandas-market-calendars
 pandas_datareader
 threadpool
 crontab
+bs4

@@ -5,6 +5,10 @@ from cboe_monitor.utilities import \
     mk_notification, mk_notification_params, is_business_day
 from cboe_monitor.data_manager import VIXDataManager, GVZDataManager, OVXDataManager
 from cboe_monitor.schedule_manager import ScheduleManager
+from cboe_monitor.util_http_bs4 import get_content_json
+from cboe_monitor.util_cboe_vix_futures import \
+    check_vix_intraday_warning, check_warning_info_same, VIX_FUTURES_URL, \
+    mk_intraday_notification
 from cboe_monitor.util_dingding import send_md_msg
 from cboe_monitor.logger import logger
 from datetime import datetime, timezone, timedelta
@@ -84,8 +88,37 @@ class MonitorScheduleManager(ScheduleManager):
         return True
 
 
+#----------------------------------------------------------------------
+class IntradayScheduleManager(ScheduleManager):
+
+    # use interval
+    _last_infos = []
+
+    def get_delay_time(self):
+        """do it every 900 seconds"""
+        return 900
+
+    #----------------------------------------------------------------------
+    def do_timeout(self):
+        """"""
+        soup = get_content_json(VIX_FUTURES_URL)
+        if False == soup:
+            logger.info("intraday vix futures info fetch failed. ")
+            return False
+        rets = check_vix_intraday_warning(soup)
+        if rets != [] and not check_warning_info_same(self._last_infos, rets):
+            title, msg = mk_intraday_notification(rets)
+            send_md_msg(title, msg)
+            logger.info('intraday vix warning msg sended. ')
+            self._last_infos = rets
+        return True
+
+
+#----------------------------------------------------------------------
 if __name__ == '__main__':
     mgr = MonitorScheduleManager(True)
     logger.info('cboe monitor started. ')
+    intraday_mgr = IntradayScheduleManager(True)
+    logger.info('cboe intraday monitor started. ')
     while True:
         sleep(1)

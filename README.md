@@ -33,4 +33,6 @@ tail ./nohup.out
 ### 0.8.0 - 数据从 yahoo http 下载（use yahoo http download instead of pandas_datareader）
 由于数据格式的问题，需要删除已经下载的 ./data/vix/VIX.csv ./data/gvz/GVZ.csv ./data/ovx/OVX.csv
 due to the data source changed, you maybe be need to delete the ./data/vix/VIX.csv ./data/gvz/GVZ.csv ./data/ovx/OVX.csv manually.
+### 0.9.0 - 日内 vix 异常波动预警（intraday vix warning）
 ## update schedule:
+### 0.9.1 - 数据从 cboe http 下载（use cboe http download instead of yahoo）

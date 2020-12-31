@@ -28,6 +28,7 @@ def get_delay_time(cronTab):
 #----------------------------------------------------------------------
 class ScheduleManager(metaclass = Singleton):
     # minute hour day month weekday
+    # '0 0 * * *'
     _crontab = '0 0 * * *'
     _thread = None
 
@@ -36,10 +37,14 @@ class ScheduleManager(metaclass = Singleton):
         super(ScheduleManager, self).__init__()
         self.timeout(doit)
 
+    def get_delay_time(self):
+        """get the delay time for the next action"""
+        return get_delay_time(self._crontab)
+
     def timeout(self, doit: bool = True):
         """when time out"""
         self.cancel_timer()
-        delay = get_delay_time(self._crontab)
+        delay = self.get_delay_time()
         if True == doit and delay > CRONTAB_DOIT_MIN_DELAY:
             if not self.do_timeout():
                 # re_delay is 5 minutes
