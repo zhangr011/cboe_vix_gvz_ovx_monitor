@@ -25,7 +25,7 @@ case "$1" in
         $0 start
         ;;
     *)
-        echo "Usage: bash start_proxy.sh [start|stop|restart]"
+        echo "Usage: bash start_monitor.sh [start|stop|restart]"
         ;;
 esac
 exit 0
