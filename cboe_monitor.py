@@ -93,6 +93,7 @@ class IntradayScheduleManager(ScheduleManager):
 
     # use interval
     _last_infos = []
+    _counter = 0
 
     def get_delay_time(self):
         """do it every 900 seconds"""
@@ -111,12 +112,17 @@ class IntradayScheduleManager(ScheduleManager):
             send_md_msg(title, msg)
             logger.info('intraday vix warning msg sended. ')
             self._last_infos = rets
+        self._counter +=1
+        # 192 = 4 * 48, about 2 day
+        if self._counter >= 192:
+            logger.info('intraday monitor is still aliving... ')
+            self._counter = 0
         return True
 
 
 #----------------------------------------------------------------------
 if __name__ == '__main__':
-    mgr = MonitorScheduleManager(True)
+    mgr = MonitorScheduleManager(False)
     logger.info('cboe monitor started. ')
     intraday_mgr = IntradayScheduleManager(True)
     logger.info('cboe intraday monitor started. ')
