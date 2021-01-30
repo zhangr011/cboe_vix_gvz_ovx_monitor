@@ -2,7 +2,9 @@
 
 from .utilities import \
     CHECK_SECTION, INDEX_KEY, DATE_FORMAT, \
-    check_file_integrity, load_vix_by_csv
+    check_file_integrity, load_vix_by_csv, get_recent_trading_days, \
+    OPEN_PRICE_NAME, HIGH_PRICE_NAME, LOW_PRICE_NAME, CLOSE_PRICE_NAME, VOLUME_NAME
+from .util_http_bs4 import get_content_json
 from .logger import logger
 
 from abc import abstractclassmethod, ABCMeta
@@ -16,9 +18,17 @@ import pandas_datareader as pdr
 
 #----------------------------------------------------------------------
 class SYNC_DATA_MODE(Enum):
-    HTTP_DOWNLOAD = 1
+    HTTP_DOWNLOAD_FILE = 1
     HTTP_DOWNLOAD_YAHOO = 2
+    HTTP_DOWNLOAD_CBOE = 3
     PANDAS_DATAREADER_YAHOO = 11
+
+
+#----------------------------------------------------------------------
+class CBOE_REMOTE_DATA_TYPE(Enum):
+    HISTORY = 1
+    QUOTES  = 2
+
 
 
 FIX_FILE_PATTERN = re.compile(r'\^|\=')
@@ -62,6 +72,15 @@ class IRemoteData(metaclass = ABCMeta):
             return None
 
     #----------------------------------------------------------------------
+    def get_last_index(self):
+        """get the local last index"""
+        try:
+            df = load_vix_by_csv(self.get_local_path())
+            return df.index[-1], df
+        except (FileNotFoundError, IndexError):
+            return None, None
+
+    #----------------------------------------------------------------------
     def sync_data(self):
         """sync the data if needed. """
         checksum = self.get_local_checksum()
@@ -89,9 +108,19 @@ class IRemoteData(metaclass = ABCMeta):
         """do the sync"""
         pass
 
+    #----------------------------------------------------------------------
+    def drop_last_n_test(self, n: int = 1):
+        """"""
+        li, df = self.get_last_index()
+        if li is None:
+            return
+        # df = df.iloc[:-n]
+        df.drop(df.tail(n).index, inplace = True)
+        df.to_csv(path_or_buf = self.get_local_path())
+
 
 #----------------------------------------------------------------------
-class RemoteHttpData(IRemoteData):
+class RemoteHttpFileData(IRemoteData):
 
     #----------------------------------------------------------------------
     def do_sync_data(self):
@@ -103,26 +132,18 @@ class RemoteHttpData(IRemoteData):
 
 
 #----------------------------------------------------------------------
-class RemotePDRYahooData(IRemoteData):
+class IRemoteHttpData(IRemoteData):
 
-    #----------------------------------------------------------------------
-    def get_last_index(self):
-        """get the local last index"""
-        try:
-            df = load_vix_by_csv(self.get_local_path())
-            return df.index[-1], df
-        except (FileNotFoundError, IndexError):
-            return None, None
-
-    #----------------------------------------------------------------------
-    def query_remote(self, start: str):
-        """query the remote data"""
-        data = pdr.get_data_yahoo(self.remote_path, start = start)
-        return data
 
     #----------------------------------------------------------------------
     def fix_data_index(self, data):
         data.index = data.index.strftime(DATE_FORMAT)
+
+    #----------------------------------------------------------------------
+    @abstractclassmethod
+    def query_remote(self, start: str):
+        """query the remote data"""
+        raise NotImplementedError
 
     #----------------------------------------------------------------------
     def do_sync_data(self):
@@ -146,7 +167,17 @@ class RemotePDRYahooData(IRemoteData):
 
 
 #----------------------------------------------------------------------
-class RemoteHttpYahooData(RemotePDRYahooData):
+class RemotePDRYahooData(IRemoteHttpData):
+
+    #----------------------------------------------------------------------
+    def query_remote(self, start: str):
+        """query the remote data"""
+        data = pdr.get_data_yahoo(self.remote_path, start = start)
+        return data
+
+
+#----------------------------------------------------------------------
+class RemoteHttpYahooData(IRemoteHttpData):
 
     download_url = "https://query1.finance.yahoo.com/v7/finance/download/"
     download_url_suffix = "interval=1d&events=history&includeAdjustedClose=true"
@@ -182,6 +213,109 @@ class RemoteHttpYahooData(RemotePDRYahooData):
 
 
 #----------------------------------------------------------------------
+class RemoteHttpCBOEData(IRemoteHttpData):
+
+    history_url = "https://cdn.cboe.com/api/global/delayed_quotes/charts/historical/_%s.json"
+    quotes_url = "https://cdn.cboe.com/api/global/delayed_quotes/quotes/_%s.json"
+    query_dates = []
+
+    #----------------------------------------------------------------------
+    def get_url(self, start: str):
+        """"""
+        self.query_dates = get_recent_trading_days()
+        if start is None:
+            return True, CBOE_REMOTE_DATA_TYPE.HISTORY, self.history_url % self.local
+        else:
+            if start in self.query_dates:
+                if start == self.query_dates[-2]:
+                    # we only need to download the last day's data
+                    return True, CBOE_REMOTE_DATA_TYPE.QUOTES, self.quotes_url % self.local
+                elif start == self.query_dates[-1]:
+                    # no data download needed
+                    return False
+            # some data have been lost, we need to download all data again
+            return True, CBOE_REMOTE_DATA_TYPE.HISTORY, self.history_url % self.local
+
+    #----------------------------------------------------------------------
+    def do_data_handle(self, params: tuple):
+        """"""
+        _check, query_type, url = params
+        data = get_content_json(url)
+        if CBOE_REMOTE_DATA_TYPE.HISTORY == query_type:
+            data = self.do_history_data_handle(data)
+        elif CBOE_REMOTE_DATA_TYPE.QUOTES == query_type:
+            data = self.do_quotes_data_handle(data)
+        else:
+            raise NotImplementedError(f'not supported cboe remote type: {query_type}')
+        data.index.rename(INDEX_KEY, inplace = True)
+        logger.info(f'remote data from {url} downloaded. ')
+        return data
+
+    #----------------------------------------------------------------------
+    def do_history_data_handle(self, data_dic: dict):
+        """convert history json data to pandas dataframe"""
+        data = data_dic['data']
+        df = pd.DataFrame(data)
+        df.set_index('date', inplace = True)
+        df.rename({'open'  : OPEN_PRICE_NAME,
+                   'high'  : HIGH_PRICE_NAME,
+                   'low'   : LOW_PRICE_NAME,
+                   'close' : CLOSE_PRICE_NAME,
+                   'volume': VOLUME_NAME}, axis = 1, inplace = True)
+        return df
+
+    #----------------------------------------------------------------------
+    def do_quotes_data_handle(self, data_dic: dict):
+        """convert quotes json data to pandas dataframe"""
+        data = data_dic['data']
+        df = pd.DataFrame([data])
+        df.set_index('last_trade_time', inplace = True)
+        df.index = df.index.str.replace('T[0-9]{2}:[0-9]{2}:[0-9]{2}', '', regex = True)
+        df.rename({'open' : OPEN_PRICE_NAME,
+                   'high' : HIGH_PRICE_NAME,
+                   'low'  : LOW_PRICE_NAME,
+                   'close' : CLOSE_PRICE_NAME,
+                   'volume' : VOLUME_NAME}, axis = 1, inplace = True)
+        df = df[[OPEN_PRICE_NAME, HIGH_PRICE_NAME, LOW_PRICE_NAME, CLOSE_PRICE_NAME, VOLUME_NAME]]
+        if df.index[-1] != self.query_dates[-1]:
+            raise ValueError(f'date expected error: for {self.query_dates[-1]} but get {df.index[-1]}. ')
+        return df
+
+
+    #----------------------------------------------------------------------
+    def query_remote(self, start: str):
+        """download the data"""
+        url_params = self.get_url(start)
+        if url_params is False:
+            return False
+        data = self.do_data_handle(url_params)
+        return data
+
+    #----------------------------------------------------------------------
+    def do_sync_data(self):
+        """sync the data"""
+        li, ldf = self.get_last_index()
+        data = self.query_remote(li)
+        if data is False:
+            return ldf
+        data.index.rename(INDEX_KEY, inplace = True)
+        # with index
+        if ldf is None:
+            data.to_csv(path_or_buf = self.get_local_path())
+        else:
+            # append data to the local path, this is not work due to the last
+            # row is changed from time to time
+            # data.to_csv(path_or_buf = self.get_local_path(), mode = 'a', header = False)
+            data = pd.concat([ldf, data])
+            # drop the duplicated index rows
+            data = data[~data.index.duplicated(keep = 'last')]
+            data.to_csv(path_or_buf = self.get_local_path())
+        # recursive call sync data
+        time.sleep(1)
+        return self.do_sync_data()
+
+
+#----------------------------------------------------------------------
 class RemoteDataFactory():
 
     data_path = ''
@@ -195,8 +329,11 @@ class RemoteDataFactory():
     #----------------------------------------------------------------------
     def create(self, local: str, remote: str, via: SYNC_DATA_MODE):
         """the creator of RemoteData"""
-        if SYNC_DATA_MODE.HTTP_DOWNLOAD == via:
-            return RemoteHttpData(
+        if SYNC_DATA_MODE.HTTP_DOWNLOAD_FILE == via:
+            return RemoteHttpFileData(
+                self.ini_parser, self.data_path, local, remote)
+        elif SYNC_DATA_MODE.HTTP_DOWNLOAD_CBOE == via:
+            return RemoteHttpCBOEData(
                 self.ini_parser, self.data_path, local, remote)
         elif SYNC_DATA_MODE.PANDAS_DATAREADER_YAHOO == via:
             return RemotePDRYahooData(

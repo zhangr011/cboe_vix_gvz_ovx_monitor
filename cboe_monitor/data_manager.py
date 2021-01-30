@@ -44,7 +44,7 @@ class DataManager():
         data_fac = RemoteDataFactory(self.data_path, self.ini_parser)
         for sym in self.symbols:
             rdata = data_fac.create(
-                sym, sym, SYNC_DATA_MODE.HTTP_DOWNLOAD_YAHOO)
+                sym, sym, SYNC_DATA_MODE.HTTP_DOWNLOAD_CBOE)
             to_update.append(rdata)
         # if self.futures_target:
         #     # add the futures target
@@ -61,7 +61,7 @@ class DataManager():
         for expiration_date in self._delivery_dates:
             remote_path = os.path.join(self.futures_link, expiration_date)
             rdata = data_fac.create(
-                expiration_date, remote_path, SYNC_DATA_MODE.HTTP_DOWNLOAD)
+                expiration_date, remote_path, SYNC_DATA_MODE.HTTP_DOWNLOAD_FILE)
             # (None, dict_param: dict) for pass parameters by dict
             to_update.append(rdata)
         # do request in the threadpool
@@ -123,7 +123,7 @@ class VIXDataManager(DataManager):
         delta_p.drop(0, axis = 1, inplace = True)
         vix = load_vix_by_csv(os.path.join(self.data_path, 'VIX.csv'))
         vix.dropna(subset = ['Close'], inplace = True)
-        vix.drop(columns = ['Volume', 'Adj Close'], inplace = True)
+        vix.drop(columns = ['Volume'], inplace = True)
         close_ma5_ma10_ma20(vix)
         return {'vix_diff': delta_p, 'vix' : vix}
 
@@ -147,7 +147,7 @@ class GVZDataManager(DataManager):
         """analyze the data"""
         gvz = load_vix_by_csv(os.path.join(self.data_path, 'GVZ.csv'))
         gvz.dropna(subset = ['Close'], inplace = True)
-        gvz.drop(columns = ['Volume', 'Adj Close'], inplace = True)
+        gvz.drop(columns = ['Volume'], inplace = True)
         close_ma5_ma10_ma20(gvz)
         return {'gvz': gvz}
 
@@ -170,6 +170,6 @@ class OVXDataManager(DataManager):
         """analyze the data"""
         ovx = load_vix_by_csv(os.path.join(self.data_path, 'OVX.csv'))
         ovx.dropna(subset = ['Close'], inplace = True)
-        ovx.drop(columns = ['Volume', 'Adj Close'], inplace = True)
+        ovx.drop(columns = ['Volume'], inplace = True)
         close_ma5_ma10_ma20(ovx)
         return {'ovx': ovx}

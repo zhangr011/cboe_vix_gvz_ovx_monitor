@@ -30,7 +30,11 @@ CHECK_SECTION = 'checksum'
 # index key for file check
 INDEX_KEY = 'Trade Date'
 SETTLE_PRICE_NAME = 'Settle'
+OPEN_PRICE_NAME  = 'Open'
+HIGH_PRICE_NAME  = 'High'
+LOW_PRICE_NAME   = 'Low'
 CLOSE_PRICE_NAME = 'Close'
+VOLUME_NAME      = 'Volume'
 
 # about 3 years
 HV_DISTRIBUTION_PERIODS = 260 * 3
@@ -63,8 +67,8 @@ def run_over_time_frame():
     logger.info("Calculating contract expiration dates...")
     futures_exp_dates = []
     # about 14 months later
-    end_time = datetime.datetime.now() + datetime.timedelta(days = 420)
-    cur_time = datetime.datetime(2013, 1, 1)
+    end_time = datetime.datetime.now(tz = cboe_calendar.tz) + datetime.timedelta(days = 420)
+    cur_time = datetime.datetime(2013, 1, 1, tzinfo = cboe_calendar.tz)
     schedule_days = cboe_calendar.schedule(cur_time.strftime(DATE_FORMAT),
                                            end_time.strftime(DATE_FORMAT))
     while cur_time.weekday() != 4:
@@ -89,6 +93,17 @@ def run_over_time_frame():
     futures_exp_dates.pop(0)
     logger.info("Expiration Dates Generated.")
     return futures_exp_dates, schedule_days
+
+
+#----------------------------------------------------------------------
+def get_recent_trading_days(delta: int = 10):
+    """get the last 5 trading days"""
+    current = datetime.datetime.now(tz = cboe_calendar.tz)
+    start = current + datetime.timedelta(days = -delta)
+    recent = cboe_calendar.schedule(start_date = start.strftime(DATE_FORMAT),
+                                    end_date = current.strftime(DATE_FORMAT))
+    days = market_cal.date_range(recent, frequency = '1D')
+    return days.strftime(DATE_FORMAT)
 
 
 #----------------------------------------------------------------------
@@ -364,8 +379,8 @@ def format_index(df: pd.DataFrame, delivery_dates: list = []):
     """format the index of DataFrame"""
     if delivery_dates != []:
         df['d'] = df.apply(lambda row: 'd' if row.name in delivery_dates else '', axis = 1)
-    df.index = df.index.str.replace(r'\d{4}-', '')
-    df.index = df.index.str.replace('-', '')
+    df.index = df.index.str.replace(r'\d{4}-', '', regex = True)
+    df.index = df.index.str.replace('-', '', regex = True)
     df.index.rename('Date', inplace = True)
 
 

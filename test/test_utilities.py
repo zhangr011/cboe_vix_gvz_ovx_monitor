@@ -7,7 +7,7 @@ from cboe_monitor.utilities import \
     TEST_DATA_ROOT, DATE_FORMAT, get_day_index, \
     run_over_time_frame, get_file_path, \
     check_data_integrity, generate_csv_checksums, generate_futures_chain, \
-    index_distribution_of_per
+    index_distribution_of_per, get_recent_trading_days
 
 import pandas_datareader as pdr
 import pandas as pd
@@ -102,6 +102,14 @@ class TestUnititiesCase(ut.TestCase):
         target = list(range(2, 200, 2))
         self.assertEqual(target, index_distribution_of_per(199))
         self.assertEqual(target, index_distribution_of_per(200))
+
+    #----------------------------------------------------------------------
+    def testRecentTradingDays(self):
+        """"""
+        recent = get_recent_trading_days()
+        self.assertEqual(True, recent.size > 0)
+        today_str = '2021-01-29'
+        self.assertEqual(today_str, recent[-1])
 
 
 if __name__ == '__main__':
