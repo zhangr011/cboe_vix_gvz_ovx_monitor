@@ -109,12 +109,7 @@ def get_recent_trading_days(delta: int = 10, current: datetime = None):
     days = market_cal.date_range(recent, frequency = '1D')
     days = days.strftime(DATE_FORMAT)
     # just worked, not good
-    fdays = []
-    for x in days:
-        if is_business_day(x, recent):
-            fdays.append(True)
-        else:
-            fdays.append(False)
+    fdays = [is_business_day(x, recent) for x in days]
     return days[fdays]
 
 
