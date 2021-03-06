@@ -86,21 +86,31 @@ class IRemoteData(metaclass = ABCMeta):
         checksum = self.get_local_checksum()
         local_path = self.get_local_path()
         if not check_file_integrity(local_path, checksum):
-            try:
-                data = self.do_sync_data()
-                logger.info(f'{self.get_local_path()} downloaded. ')
-                return data
-            except (http.client.RemoteDisconnected,
-                    urllib.error.URLError,
-                    urllib.error.HTTPError,
-                    urllib3.exceptions.MaxRetryError,
-                    requests.exceptions.ConnectionError,
-                    pdr._utils.RemoteDataError):
-                # for network error handling
-                # logger.error(f'{self.remote_path} download failed: {traceback.format_exc()}')
-                logger.error(f'{self.remote_path} download failed: {traceback.format_exc(limit = 0)}')
-            except:
-                logger.error(f'{self.remote_path} download failed: {traceback.format_exc()}')
+            return self.safe_sync_data()
+
+    #----------------------------------------------------------------------
+    def safe_sync_data(self, times = 3):
+        if times < 0:
+            return
+        try:
+            data = self.do_sync_data()
+            logger.info(f'{self.get_local_path()} downloaded. ')
+            return data
+        except (urllib.error.URLError,
+                urllib.error.HTTPError,
+                urllib3.exceptions.MaxRetryError,
+                requests.exceptions.ConnectionError,
+                pdr._utils.RemoteDataError):
+            # for network error handling
+            # logger.error(f'{self.remote_path} download failed: {traceback.format_exc()}')
+            logger.error(f'{self.remote_path} download failed: {traceback.format_exc(limit = 0)}')
+            return
+        except http.client.RemoteDisconnected:
+            logger.error(f'{self.remote_path} download failed: times left {times}, retry 30 seconds later. ')
+        except:
+            logger.error(f'{self.remote_path} download failed: {traceback.format_exc()}')
+            return
+        return self.safe_sync_data(times - 1)
 
     #----------------------------------------------------------------------
     @abstractclassmethod
