@@ -25,6 +25,12 @@ TZ_INFO = 'America/Chicago'
 DATA_ROOT = './data'
 TEST_DATA_ROOT = './test/data'
 
+
+def set_data_root(paths: str):
+    global DATA_ROOT
+    DATA_ROOT = paths
+
+
 # section name for ini parser
 CHECK_SECTION = 'checksum'
 # index key for file check
