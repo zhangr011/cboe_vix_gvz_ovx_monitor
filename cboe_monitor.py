@@ -14,6 +14,8 @@ from cboe_monitor.logger import logger
 from datetime import datetime, timezone, timedelta
 from time import sleep
 
+import argparse
+
 
 #----------------------------------------------------------------------
 def get_last_day(update_hour):
@@ -35,6 +37,12 @@ class MonitorScheduleManager(ScheduleManager):
     _day_vix_downloaded = False
     _day_gvz_downloaded = False
     _day_ovx_downloaded = False
+
+    def __init__(self, immediately: bool = False, push_msg: bool = False):
+        """"""
+        self._immediately = immediately
+        self._push_msg = push_msg
+        super(MonitorScheduleManager, self).__init__(immediately)
 
     def do_timeout(self):
         """"""
@@ -74,7 +82,8 @@ class MonitorScheduleManager(ScheduleManager):
         self._day_ovx_downloaded = True
         params = mk_notification_params(df, delivery_dates, rets_vix, rets_gvzm, rets_ovxm)
         title, msg = mk_notification(**params)
-        send_md_msg(title, msg)
+        if self._push_msg:
+            send_md_msg(title, msg)
         logger.info('schedule task done. ')
         return self.clear_and_return_true()
 
@@ -85,6 +94,8 @@ class MonitorScheduleManager(ScheduleManager):
         self._day_vix_downloaded = False
         self._day_gvz_downloaded = False
         self._day_ovx_downloaded = False
+        self._push_msg = True
+        self._immediately = False
         return True
 
 
@@ -122,7 +133,13 @@ class IntradayScheduleManager(ScheduleManager):
 
 #----------------------------------------------------------------------
 if __name__ == '__main__':
-    mgr = MonitorScheduleManager(False)
+    arg_parser = argparse.ArgumentParser()
+    arg_parser.add_argument('--imm', type = bool, dest = 'immediately', default = False,
+                            help = 'immediately analyze when started. ')
+    arg_parser.add_argument('--push', type = bool, dest = 'push_msg', default = False,
+                            help = 'push the message. ')
+    args = arg_parser.parse_args()
+    mgr = MonitorScheduleManager(args.immediately, args.push_msg)
     logger.info('cboe monitor started. ')
     intraday_mgr = IntradayScheduleManager(True)
     logger.info('cboe intraday monitor started. ')
