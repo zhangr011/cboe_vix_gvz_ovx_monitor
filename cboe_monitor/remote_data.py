@@ -292,11 +292,15 @@ class RemoteHttpCBOEData(IRemoteHttpData):
         return data
 
     #----------------------------------------------------------------------
-    def do_sync_data(self):
+    def do_sync_data(self, index: int = 0):
         """sync the data"""
+        if 0 == index:
+            self._query_times = 0
+        else:
+            self._query_times += 1
         li, ldf = self.get_last_index()
         data = self.query_remote(li)
-        if data is False:
+        if data is False or self._query_times >= 2:
             return ldf
         data.index.rename(INDEX_KEY, inplace = True)
         # with index
@@ -312,7 +316,7 @@ class RemoteHttpCBOEData(IRemoteHttpData):
             data.to_csv(path_or_buf = self.get_local_path())
         # recursive call sync data
         time.sleep(1)
-        return self.do_sync_data()
+        return self.do_sync_data(1)
 
 
 #----------------------------------------------------------------------

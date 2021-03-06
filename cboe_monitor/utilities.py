@@ -54,8 +54,11 @@ MD_FORMAT_TO = r'\n\n'
 
 
 #----------------------------------------------------------------------
-def is_business_day(input_date, schedule_days):
-    input_date_str = input_date.strftime(DATE_FORMAT)
+def is_business_day(input_date: datetime.datetime, schedule_days):
+    if isinstance(input_date, datetime.datetime):
+        input_date_str = input_date.strftime(DATE_FORMAT)
+    else:
+        input_date_str = input_date
     holiday_check = cboe_calendar.open_at_time(schedule_days, pd.Timestamp(input_date_str + ' 12:00', tz=TZ_INFO))
     return holiday_check
 
@@ -102,14 +105,18 @@ def run_over_time_frame():
 
 
 #----------------------------------------------------------------------
-def get_recent_trading_days(delta: int = 10):
+def get_recent_trading_days(delta: int = 10, current: datetime = None):
     """get the last 5 trading days"""
-    current = datetime.datetime.now(tz = cboe_calendar.tz)
+    if current is None:
+        current = datetime.datetime.now(tz = cboe_calendar.tz)
     start = current + datetime.timedelta(days = -delta)
     recent = cboe_calendar.schedule(start_date = start.strftime(DATE_FORMAT),
                                     end_date = current.strftime(DATE_FORMAT))
     days = market_cal.date_range(recent, frequency = '1D')
-    return days.strftime(DATE_FORMAT)
+    days = days.strftime(DATE_FORMAT)
+    # just worked, not good
+    fdays = [is_business_day(x, recent) for x in days]
+    return days[fdays]
 
 
 #----------------------------------------------------------------------

@@ -42,7 +42,7 @@ class TestUnititiesCase(ut.TestCase):
         """"""
         ret = generate_csv_checksums(TEST_DATA_ROOT)
         self.assertEqual([('2013-01-16.csv', '5177dab14a912f774a8478bfbefb9e4100023c45'),
-                          ('2020-08-19.csv', '8b5b795edfea70bba2c183e6b198c769ea4dd8cb')], ret)
+                          ('2020-08-19.csv', '8b5b795edfea70bba2c183e6b198c769ea4dd8cb')], sorted(ret))
 
     #----------------------------------------------------------------------
     def testRunOverTimeFrame(self):
@@ -106,10 +106,12 @@ class TestUnititiesCase(ut.TestCase):
     #----------------------------------------------------------------------
     def testRecentTradingDays(self):
         """"""
-        recent = get_recent_trading_days()
+        current = datetime(2021, 2, 16)
+        recent = get_recent_trading_days(current = current)
         self.assertEqual(True, recent.size > 0)
-        today_str = '2021-01-29'
+        today_str = '2021-02-16'
         self.assertEqual(today_str, recent[-1])
+        self.assertEqual(False, '2021-02-15' in recent)
 
 
 if __name__ == '__main__':
