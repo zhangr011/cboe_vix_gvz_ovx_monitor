@@ -16,6 +16,7 @@ DATE_FORMAT_PATTERN = re.compile(r'(\d{4}-\d{2}-\d{2})')
 INIT_DATE = '1900-01-01'
 
 cboe_calendar = market_cal.get_calendar('CME')
+DAILY_UPDATE_HOUR = 23
 
 ONE_DAY = datetime.timedelta(days = 1)
 SEVEN_DAYS = datetime.timedelta(days = 7)
@@ -61,6 +62,15 @@ def is_business_day(input_date: datetime.datetime, schedule_days):
         input_date_str = input_date
     holiday_check = cboe_calendar.open_at_time(schedule_days, pd.Timestamp(input_date_str + ' 12:00', tz=TZ_INFO))
     return holiday_check
+
+
+#----------------------------------------------------------------------
+def get_last_day(update_hour: int = DAILY_UPDATE_HOUR):
+    current = datetime.datetime.now(tz = datetime.timezone.utc)
+    if current.hour >= update_hour:
+        return current
+    else:
+        return current + datetime.timedelta(days = -1)
 
 
 #----------------------------------------------------------------------

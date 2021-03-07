@@ -1,7 +1,7 @@
 # encoding: UTF-8
 
 from cboe_monitor.utilities import \
-    DATE_FORMAT, run_over_time_frame, \
+    DATE_FORMAT, run_over_time_frame, DAILY_UPDATE_HOUR, get_last_day, \
     mk_notification, mk_notification_params, is_business_day
 from cboe_monitor.data_manager import VIXDataManager, GVZDataManager, OVXDataManager
 from cboe_monitor.schedule_manager import ScheduleManager
@@ -11,26 +11,17 @@ from cboe_monitor.util_cboe_vix_futures import \
     mk_intraday_notification
 from cboe_monitor.util_dingding import send_md_msg
 from cboe_monitor.logger import logger
-from datetime import datetime, timezone, timedelta
+from datetime import datetime
 from time import sleep
 
 import argparse
 
 
 #----------------------------------------------------------------------
-def get_last_day(update_hour):
-    current = datetime.now(tz = timezone.utc)
-    if current.hour >= update_hour:
-        return current
-    else:
-        return current + timedelta(days = -1)
-
-
-#----------------------------------------------------------------------
 class MonitorScheduleManager(ScheduleManager):
 
     # UTC+8
-    _update_hour = 23
+    _update_hour = DAILY_UPDATE_HOUR
     _crontab = f'50 {_update_hour} * * *'
     _last_day = None
     _day_index = None
