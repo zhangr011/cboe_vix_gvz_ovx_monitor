@@ -16,6 +16,7 @@ ini_config.read(PUSH_CONFIG_PATH)
 # dingding push
 dd_url = ini_config.get(PUSH_SECTION, 'url')
 dd_token = ini_config.get(PUSH_SECTION, 'token')
+vix_html_url = ini_config.get(PUSH_SECTION, 'vix_html_url')
 dd_token_enc = dd_token.encode('utf-8')
 
 headers = {'Content-Type': 'application/json'}
@@ -66,7 +67,7 @@ def send_msg(msg: str):
 #----------------------------------------------------------------------
 def send_md_msg(title: str, content: str):
     """发送 md 信息"""
-    content = f'### {title}  \n\n  --------------  \n\n  {content}  \n\n'
+    content = f'### {title}  \n\n  --------------  \n\n  {content}  \n\n [vix viewer...]({vix_html_url})'
     msg = {'msgtype': "markdown",
            'markdown': {"title": title,
                         "text": content}}
