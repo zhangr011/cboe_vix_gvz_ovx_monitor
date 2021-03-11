@@ -54,6 +54,9 @@ class MonitorScheduleManager(ScheduleManager):
             logger.info(f"last_day: {self._last_day}, index: {self._day_index}, vix_index: {rets_vix['vix'].index[-1]}, vix_diff_index: {rets_vix['vix_diff'].index[-1]}")
             logger.info("vix info download failed. ")
             return False
+        elif rets_vix['vix_diff'][0] == 0 or rets_vix['vix_diff'][1] == 0:
+            logger.info(f'vix info download failed due to vix diff 0 or 1 is zero. ')
+            return False
         self._day_vix_downloaded = True
         # gvz futures are delisted
         gvzm = GVZDataManager([])
