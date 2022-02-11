@@ -15,7 +15,7 @@ DATE_FORMAT_PATTERN = re.compile(r'(\d{4}-\d{2}-\d{2})')
 # INIT_DATE for fix empty delivery dates
 INIT_DATE = '1900-01-01'
 
-cboe_calendar = market_cal.get_calendar('CME')
+cboe_calendar = market_cal.get_calendar('CME_Rate')
 DAILY_UPDATE_HOUR = 23
 
 ONE_DAY = datetime.timedelta(days = 1)
