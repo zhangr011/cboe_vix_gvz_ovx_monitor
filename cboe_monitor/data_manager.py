@@ -34,6 +34,10 @@ class DataManager():
         self.check_ini()
 
     #----------------------------------------------------------------------
+    def get_remote_path(self, expiration_date):
+        return os.path.join(self.futures_link, expiration_date)
+
+    #----------------------------------------------------------------------
     def download_raw_data(self, downloaded = False):
         """download the data"""
         if downloaded is True:
@@ -59,7 +63,7 @@ class DataManager():
         #         sym, sym, SYNC_DATA_MODE.PANDAS_DATAREADER)
         #     to_update.append(rdata)
         for expiration_date in self._delivery_dates:
-            remote_path = os.path.join(self.futures_link, expiration_date)
+            remote_path = self.get_remote_path(expiration_date)
             rdata = data_fac.create(
                 expiration_date, remote_path, SYNC_DATA_MODE.HTTP_DOWNLOAD_FILE)
             # (None, dict_param: dict) for pass parameters by dict
@@ -110,10 +114,14 @@ class DataManager():
 #----------------------------------------------------------------------
 class VIXDataManager(DataManager):
 
-    futures_link = 'https://markets.cboe.com/us/futures/market_statistics/historical_data/products/csv/VX/'
+    futures_link = 'https://cdn.cboe.com/data/us/futures/market_statistics/historical_data/VX/'
     symbols = ['^VIX']
     data_path = get_file_path('vix')
     ini_path = get_file_path('vix.ini')
+
+    #----------------------------------------------------------------------
+    def get_remote_path(self, expiration_date):
+        return os.path.join(self.futures_link, "VX_" + expiration_date + ".csv")
 
     #----------------------------------------------------------------------
     def analyze(self):
